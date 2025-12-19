@@ -550,6 +550,196 @@
                 min-height: 100px;
             }
         }
+
+        /* 成就墙和模态框样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .achievement-modal {
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border: 2px solid #8b0000;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px rgba(139, 0, 0, 0.5);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #8b0000;
+        }
+
+        .modal-header h3 {
+            color: #b22222;
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .close-btn {
+            background: #8b0000;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #b22222;
+            transform: scale(1.1);
+        }
+
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .achievement-card {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(139, 0, 0, 0.3);
+        }
+
+        .achievement-card.unlocked {
+            border-color: #b22222;
+            background: rgba(139, 34, 34, 0.1);
+        }
+
+        .achievement-icon {
+            font-size: 2em;
+            width: 50px;
+            text-align: center;
+        }
+
+        .achievement-info {
+            flex: 1;
+        }
+
+        .achievement-name {
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .achievement-desc {
+            color: #999;
+            font-size: 0.9em;
+            line-height: 1.3;
+        }
+
+        .achievement-card.locked .achievement-name {
+            color: #666;
+        }
+
+        .achievement-card.locked .achievement-desc {
+            color: #555;
+            font-style: italic;
+        }
+
+        /* 响应式成就墙 */
+        @media (max-width: 768px) {
+            .achievement-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .achievement-modal {
+                max-width: 95%;
+                margin: 10px;
+            }
+        }
+
+        /* 物品栏增强样式 */
+        .inventory {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #8b0000;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .inventory.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                max-height: 0;
+                opacity: 0;
+            }
+            to {
+                max-height: 200px;
+                opacity: 1;
+            }
+        }
+
+        .inventory-title {
+            color: #b22222;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .inventory-item {
+            display: inline-block;
+            background: rgba(139, 34, 34, 0.2);
+            border: 1px solid #8b0000;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin: 5px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -569,6 +759,12 @@
             <div class="status-item">
                 <span class="status-label">村民好感度:</span>
                 <span class="status-value" id="trustLevel">0</span>
+            </div>
+            <div class="status-item">
+                <button id="inventoryBtn" class="control-button" onclick="toggleInventory()">背包 (<span id="inventoryCount">0</span>)</button>
+            </div>
+            <div class="status-item">
+                <button id="achievementBtn" class="control-button" onclick="showAchievements()">成就 (<span id="achievementCount">0</span>/10)</button>
             </div>
             <div class="status-item">
                 <span class="status-label" id="timeDisplay">农历七月初一 夜</span>
@@ -593,7 +789,7 @@
         // 游戏状态
         const gameState = {
             currentScene: 'title_screen',
-            sanity: 80,
+            sanity: -32,
             trustLevel: 0,
             inventory: [],
             flags: {
@@ -655,7 +851,7 @@
                 text: '你拖着疲惫的身体来到了这个偏远的山村。\n\n作为民俗学专业的学生，你选择在中元节期间回到祖籍村庄，准备记录这里独特的鬼节习俗。村子入口处，一棵巨大的榕树下坐着几位老人，他们用审视的目光打量着你这个外来者。\n\n空气中弥漫着一股若有若无的香火味，远处隐约传来诵经的声音...',
                 choices: [
                     { text: '主动上前与老人打招呼', nextScene: 'talk_to_elders', effect: { trustLevel: 10 } },
-                    { text: '默默走进村子，先找住处', nextScene: 'find_lodging', effect: { sanity: -5 } },
+                    { text: '默默走进村子，先找住处', nextScene: 'find_lodging', effect: { sanity: -6 } },
                     { text: '先在村口观察一下情况', nextScene: 'observe_village', effect: { flags: { supernaturalEvents: 1 } } }
                 ]
             },
@@ -663,7 +859,7 @@
                 text: '"年轻人，不是本地人吧？"一位留着山羊胡的老人开口道，他的眼神让你有些不自在。\n\n"我是来学习的民俗学学生，想记录村里的中元节习俗。"你礼貌地回答。\n\n老人摇了摇头："这里的事情，不是外人该了解的。现在回头还来得及，马上就是七月半了..." 旁边的几位老人也用忧虑的眼神看着你。',
                 choices: [
                     { text: '坚持要留下来研究', nextScene: 'refuse_warning', effect: { flags: { hasSpokenToElder: true }, trustLevel: -10 } },
-                    { text: '询问为什么这里这么特别', nextScene: 'ask_about_secrets', effect: { flags: { hasSpokenToElder: true }, sanity: -10 } },
+                    { text: '询问为什么这里这么特别', nextScene: 'ask_about_secrets', effect: { flags: { hasSpokenToElder: true }, sanity: -4 } },
                     { text: '感谢提醒但表示自己能处理', nextScene: 'confident_response', effect: { flags: { hasSpokenToElder: true }, trustLevel: 5 } }
                 ]
             },
@@ -671,15 +867,15 @@
                 text: '你避开了村口的老人，直接向村子深处走去。\n\n古老的青石板路在脚下发出了轻微的声响，两旁的房屋都是传统的明清建筑，但大多数都显得破败不堪。奇怪的是，几乎每家门口都贴着黄色的符纸。\n\n终于，你在一间看起来还算完整的房子前停下，门楣上挂着"李氏宗祠"的牌匾。',
                 choices: [
                     { text: '敲门询问是否有空房', nextScene: 'knock_ancestral_hall', effect: { flags: { hasAncestralKey: false } } },
-                    { text: '先绕着房子转一圈看看', nextScene: 'explore_hall', effect: { flags: { supernaturalEvents: 1 }, sanity: -5 } },
-                    { text: '继续往前找其他住处', nextScene: 'find_other_house', effect: { sanity: -10 } }
+                    { text: '先绕着房子转一圈看看', nextScene: 'explore_hall', effect: { flags: { supernaturalEvents: 1 }, sanity: -6 } },
+                    { text: '继续往前找其他住处', nextScene: 'find_other_house', effect: { sanity: -4 } }
                 ]
             },
             observe_village: {
                 text: '你选择在村口的榕树下静静观察。\n\n这棵榕树异常庞大，树干上缠绕着许多红色的丝带，有些已经褪色，有些还很新鲜。树下有一个小小的香炉，里面插满了燃尽的香。\n\n突然，一阵阴风吹过，榕树的叶子发出沙沙的声响，仿佛在低声诉说着什么。',
                 choices: [
                     { text: '仔细查看香炉里的香', nextScene: 'examine_incense', effect: { flags: { supernaturalEvents: 1 } } },
-                    { text: '触摸那些红色丝带', nextScene: 'touch_ribbons', effect: { sanity: -15, flags: { isPossessed: true } } },
+                    { text: '触摸那些红色丝带', nextScene: 'touch_ribbons', effect: { sanity: -6, flags: { isPossessed: true } } },
                     { text: '现在进村子', nextScene: 'enter_village_after_observation', effect: {} }
                 ]
             },
@@ -687,16 +883,16 @@
                 text: '"固执的年轻人..."老人叹了口气，"既然你执意如此，记住几点：天黑后不要出门，不要回应任何呼唤你的声音，最重要的是，绝对不要靠近村后的那口古井。"\n\n说完，老人们便不再理会你，继续他们的谈话，但你能感觉到他们的目光时不时地飘向你。',
                 choices: [
                     { text: '感谢老人并记住警告', nextScene: 'remember_warnings', effect: { flags: { hasSpokenToElder: true } } },
-                    { text: '追问古井的具体位置和故事', nextScene: 'ask_about_well', effect: { flags: { knowsWellSecret: true }, sanity: -10 } },
-                    { text: '不以为然地离开', nextScene: 'disregard_warnings', effect: { sanity: -20, trustLevel: -20 } }
+                    { text: '追问古井的具体位置和故事', nextScene: 'ask_about_well', effect: { flags: { knowsWellSecret: true }, sanity: -4 } },
+                    { text: '不以为然地离开', nextScene: 'disregard_warnings', effect: { sanity: -8, trustLevel: -20 } }
                 ]
             },
             ask_about_secrets: {
                 text: '老人的脸色变得更加严肃："这里的秘密，不是用来说的，是用来敬畏的。每年七月半，村里都会举行祭祀仪式，安抚那些...不安分的魂灵。"\n\n他压低声音："你看，天色不早了，还是先找个地方住下吧。宗祠那里应该还有空房间，但是..."他欲言又止。',
                 choices: [
                     { text: '直接去宗祠', nextScene: 'go_to_ancestral_hall', effect: { flags: { hasSpokenToElder: true } } },
-                    { text: '追问"但是"后面的内容', nextScene: 'press_for_details', effect: { sanity: -15, flags: { supernaturalEvents: 1 } } },
-                    { text: '先在村里转转再决定', nextScene: 'wander_village', effect: { sanity: -10 } }
+                    { text: '追问"但是"后面的内容', nextScene: 'press_for_details', effect: { sanity: -6, flags: { supernaturalEvents: 1 } } },
+                    { text: '先在村里转转再决定', nextScene: 'wander_village', effect: { sanity: -4 } }
                 ]
             },
             confident_response: {
@@ -710,48 +906,48 @@
             knock_ancestral_hall: {
                 text: '你敲响了宗祠的大门。良久，门内传来脚步声，门吱呀一声开了一道缝。\n\n一个中年男子探出头："有事吗？天快黑了，不是接待的时候。"\n\n你说明来意后，他犹豫了一下："既然是刘老介绍来的...进来吧。但是要记住，晚上待在房间里不要乱走。"',
                 choices: [
-                    { text: '道谢后进入宗祠', nextScene: 'enter_ancestral_hall', effect: { sanity: -5 } },
-                    { text: '询问为什么晚上不能乱走', nextScene: 'ask_about_night_rules', effect: { sanity: -10 } },
-                    { text: '决定不住这里，另找地方', nextScene: 'leave_hall', effect: { sanity: -15 } }
+                    { text: '道谢后进入宗祠', nextScene: 'enter_ancestral_hall', effect: { sanity: -6 } },
+                    { text: '询问为什么晚上不能乱走', nextScene: 'ask_about_night_rules', effect: { sanity: -4 } },
+                    { text: '决定不住这里，另找地方', nextScene: 'leave_hall', effect: { sanity: -6 } }
                 ]
             },
             explore_hall: {
                 text: '你绕着宗祠走了一圈。建筑保存得相当完好，青砖黛瓦，飞檐翘角。但在后院，你发现了一口被封死的古井。\n\n井口用厚重的石板盖着，上面贴满了符纸，地上还有散落的纸钱。更奇怪的是，你隐约听到井底传来若有若无的哭声...',
                 choices: [
-                    { text: '试图移开石板看看', nextScene: 'try_open_well', effect: { sanity: -20, flags: { knowsWellSecret: true, supernaturalEvents: 2 } } },
-                    { text: '立即离开这个诡异的地方', nextScene: 'flee_well', effect: { flags: { supernaturalEvents: 1 }, sanity: -10 } },
-                    { text: '在这里撒些纸钱以示敬畏', nextScene: 'offer_paper_money', effect: { sanity: 5, trustLevel: 10 } }
+                    { text: '试图移开石板看看', nextScene: 'try_open_well', effect: { sanity: -8, flags: { knowsWellSecret: true, supernaturalEvents: 2 } } },
+                    { text: '立即离开这个诡异的地方', nextScene: 'flee_well', effect: { flags: { supernaturalEvents: 1 }, sanity: -4 } },
+                    { text: '在这里撒些纸钱以示敬畏', nextScene: 'offer_paper_money', effect: { sanity: -6, trustLevel: 10 } }
                 ]
             },
             find_other_house: {
                 text: '你继续在村中寻找住处。越往里走，村子显得越发破败。大多数房屋都大门紧锁，门上挂着锁链。\n\n天色渐暗，一盏昏黄的灯笼在远处亮起。走近一看，是一个小杂货铺，门口坐着一位老婆婆在纳鞋底。',
                 choices: [
-                    { text: '上前询问是否有房间出租', nextScene: 'ask_granny', effect: { sanity: 5 } },
+                    { text: '上前询问是否有房间出租', nextScene: 'ask_granny', effect: { sanity: -6 } },
                     { text: '买些日用品顺便打听消息', nextScene: 'buy_goods', effect: { trustLevel: 5 } },
-                    { text: '转身回到宗祠', nextScene: 'return_to_hall', effect: { sanity: -10 } }
+                    { text: '转身回到宗祠', nextScene: 'return_to_hall', effect: { sanity: -4 } }
                 ]
             },
             examine_incense: {
                 text: '你蹲下身仔细查看香炉。里面的香灰堆积得很厚，说明这里经常有人来祭拜。奇怪的是，你发现了一些新鲜的水果和硬币作为供品。\n\n当你伸手想去拿供品时，一个声音在你耳边响起："别拿死人的东西..."',
                 choices: [
-                    { text: '惊恐地收回手', nextScene: 'retract_hand', effect: { sanity: -15 }, supernaturalEvent: true },
-                    { text: '四下看来是谁在说话', nextScene: 'look_for_speaker', effect: { sanity: -10, flags: { supernaturalEvents: 2 } } },
-                    { text: '无视警告拿走一个硬币', nextScene: 'take_coin', effect: { inventory: ['古币'], sanity: -20, flags: { isPossessed: true } } }
+                    { text: '惊恐地收回手', nextScene: 'retract_hand', effect: { sanity: -6 }, supernaturalEvent: true },
+                    { text: '四下看来是谁在说话', nextScene: 'look_for_speaker', effect: { sanity: -4, flags: { supernaturalEvents: 2 } } },
+                    { text: '无视警告拿走一个硬币', nextScene: 'take_coin', effect: { inventory: ['古币'], sanity: -8, flags: { isPossessed: true } } }
                 ]
             },
             touch_ribbons: {
                 text: '当你触摸那些红色丝带时，一股冰冷的寒意顺着手臂传遍全身。周围突然安静下来，连蝉鸣都消失了。\n\n你仿佛听到了许多人的低语，他们在诉说着什么...渐渐地，你发现自己分不清这些声音是来自外界，还是自己的脑海里...',
                 choices: [
-                    { text: '用力挣脱，大声念经文', nextScene: 'recite_sutras', effect: { sanity: -10 } },
-                    { text: '试着倾听那些声音在说什么', nextScene: 'listen_to_voices', effect: { sanity: -30, flags: { supernaturalEvents: 3 } } },
-                    { text: '立即转身离开榕树', nextScene: 'flee_banyan', effect: { sanity: -5 } }
+                    { text: '用力挣脱，大声念经文', nextScene: 'recite_sutras', effect: { sanity: -4 } },
+                    { text: '试着倾听那些声音在说什么', nextScene: 'listen_to_voices', effect: { sanity: -12, flags: { supernaturalEvents: 3 } } },
+                    { text: '立即转身离开榕树', nextScene: 'flee_banyan', effect: { sanity: -6 } }
                 ]
             },
             enter_village_after_observation: {
                 text: '你正式踏入了这个神秘的村庄。街道上空无一人，但每家每户都能闻到饭菜的香味，偶尔传来女人的笑声和孩子的哭声。\n\n奇怪的是，这些声音都让你感到一种说不出的诡异感。',
                 choices: [
                     { text: '直接去宗祠寻找住处', nextScene: 'go_to_ancestral_hall', effect: {} },
-                    { text: '循着声音寻找村民', nextScene: 'follow_sounds', effect: { sanity: -15, flags: { supernaturalEvents: 2 } } },
+                    { text: '循着声音寻找村民', nextScene: 'follow_sounds', effect: { sanity: -6, flags: { supernaturalEvents: 2 } } },
                     { text: '找个人询问村里情况', nextScene: 'find_villager', effect: {} }
                 ]
             },
@@ -759,96 +955,196 @@
                 text: '你猛地回头，但身后空无一人。榕树下依然是那几位老人，他们似乎没有注意到你这里的异常。\n\n"年轻人，你在找什么？"山羊胡老人问道。\n\n"刚才有人在我耳边说话..."你有些困惑地说。\n\n老人脸色一变："是它们在找你。快，天黑前必须找到一个庇护之所！"',
                 choices: [
                     { text: '立即去宗祠', nextScene: 'rush_to_hall', effect: { flags: { hasSpokenToElder: true } } },
-                    { text: '问"它们"指的是什么', nextScene: 'ask_about_them', effect: { sanity: -20 } },
-                    { text: '说自己不怕，继续探索', nextScene: 'brave_exploration', effect: { sanity: -30, flags: { supernaturalEvents: 3 } } }
+                    { text: '问"它们"指的是什么', nextScene: 'ask_about_them', effect: { sanity: -8 } },
+                    { text: '说自己不怕，继续探索', nextScene: 'brave_exploration', effect: { sanity: -12, flags: { supernaturalEvents: 3 } } }
                 ]
             },
             rush_to_hall: {
                 text: '你急匆匆地跑向李氏宗祠。老人在你身后喊道："记住锁好门，不要给任何人开门！"\n\n当你到达宗祠时，天色已经完全暗了下来。宗祠的大门敞开着，里面透出昏黄的灯光。刚才的中年男子正站在门口等你。\n\n"快进来，它们来了..."他紧张地说道。',
                 choices: [
-                    { text: '立刻进入并锁门', nextScene: 'lock_hall_door', effect: { sanity: 5 } },
-                    { text: '问"它们"到底是谁', nextScene: 'ask_who_coming', effect: { sanity: -15 } },
-                    { text: '回头看看"它们"是什么', nextScene: 'look_back', effect: { sanity: -30, flags: { isPossessed: true } } }
+                    { text: '立刻进入并锁门', nextScene: 'lock_hall_door', effect: { sanity: -6 } },
+                    { text: '问"它们"到底是谁', nextScene: 'ask_who_coming', effect: { sanity: -6 } },
+                    { text: '回头看看"它们"是什么', nextScene: 'look_back', effect: { sanity: -12, flags: { isPossessed: true } } }
                 ]
             },
             ask_about_them: {
                 text: '老人的脸色变得惨白："死去的人...不甘愿死去的人。每年的七月半，它们都会回来，寻找替身..."\n\n其他老人都紧张地看着周围。"快去吧，还有人要见你呢。"\n\n果然，宗祠的方向传来了一声呼喊，似乎在叫你的名字。',
                 choices: [
                     { text: '立即前往宗祠', nextScene: 'go_to_ancestral_hall', effect: { flags: { hasSpokenToElder: true } } },
-                    { text: '问谁在叫自己的名字', nextScene: 'ask_caller', effect: { sanity: -20, flags: { supernaturalEvents: 2 } } },
+                    { text: '问谁在叫自己的名字', nextScene: 'ask_caller', effect: { sanity: -8, flags: { supernaturalEvents: 2 } } },
                     { text: '询问如何保护自己', nextScene: 'ask_protection', effect: { flags: { hasTalisman: true }, trustLevel: 10 } }
                 ]
             },
             brave_exploration: {
                 text: '你无视警告，继续向村子深处探索。夜幕降临，整个村庄陷入一片诡异的寂静。\n\n每走一步，你都能感觉到无数双眼睛在暗中注视着你。偶尔，你会看到人影在巷子深处一闪而过，但当你追过去时，却什么都没有。\n\n突然，一个穿白衣的女孩出现在你前方不远处...',
                 choices: [
-                    { text: '上前搭话', nextScene: 'talk_to_girl', effect: { sanity: -40, flags: { isPossessed: true } } },
-                    { text: '立即转身逃跑', nextScene: 'run_away', effect: { sanity: -20 } },
-                    { text: '躲在一旁观察', nextScene: 'hide_and_watch', effect: { sanity: -10 } }
+                    { text: '上前搭话', nextScene: 'talk_to_girl', effect: { sanity: -2, flags: { isPossessed: true } } },
+                    { text: '立即转身逃跑', nextScene: 'run_away', effect: { sanity: -8 } },
+                    { text: '躲在一旁观察', nextScene: 'hide_and_watch', effect: { sanity: -4 } }
                 ]
             },
             lock_hall_door: {
                 text: '你迅速进入宗祠，中年男子立刻将沉重的木门锁上，还用门栓加固。\n\n"暂时安全了。"他松了一口气，"我是这里的守祠人，叫我李叔吧。你会在这里住下，但必须遵守规矩。"\n\n他递给你一盏油灯："今晚待在房间里，无论听到什么都不要出来。"',
                 choices: [
                     { text: '询问具体有什么规矩', nextScene: 'ask_rules', effect: { flags: { hasSpokenToElder: true, KnowsHallRules: true } } },
-                    { text: '直接去房间休息', nextScene: 'go_to_room', effect: { sanity: 5 } },
-                    { text: '问刚才外面到底是什么', nextScene: 'ask_about_outside', effect: { sanity: -15 } }
+                    { text: '直接去房间休息', nextScene: 'go_to_room', effect: { sanity: -6 } },
+                    { text: '问刚才外面到底是什么', nextScene: 'ask_about_outside', effect: { sanity: -6 } }
                 ]
             },
             ask_who_coming: {
                 text: '"每年的祭品..."守祠人李叔的声音有些颤抖，"今年轮到我们家接待外来者了。快进来，让它们看见就糟了！"\n\n你顺着他的目光望去，远处的雾气中似乎有许多人影在移动，但他们的动作很僵硬，像是...木偶。',
                 choices: [
-                    { text: '快速跑进宗祠', nextScene: 'enter_hall_quickly', effect: { sanity: -10 } },
-                    { text: '拿出手机拍照', nextScene: 'take_photo', effect: { sanity: -30, flags: { supernaturalEvents: 3 } } },
-                    { text: '试图与那些人影交流', nextScene: 'approach_figures', effect: { sanity: -50, flags: { isPossessed: true } } }
+                    { text: '快速跑进宗祠', nextScene: 'enter_hall_quickly', effect: { sanity: -4 } },
+                    { text: '拿出手机拍照', nextScene: 'take_photo', effect: { sanity: -12, flags: { supernaturalEvents: 3 } } },
+                    { text: '试图与那些人影交流', nextScene: 'approach_figures', effect: { sanity: -20, flags: { isPossessed: true } } }
                 ]
             },
             look_back: {
                 text: '你好奇地回头望去。只见一群穿着古装的人正向村口走来，他们的脸色惨白，眼神空洞。最诡异的是，他们的脚没有着地，在离地几厘米的高度漂浮着...\n\n为首的老太太对你笑了笑："年轻人，终于来了。我们等你好久了..."',
                 choices: [
-                    { text: '尖叫着跑向宗祠', nextScene: 'scream_to_hall', effect: { sanity: -20 } },
+                    { text: '尖叫着跑向宗祠', nextScene: 'scream_to_hall', effect: { sanity: -8 } },
                     { text: '站在原地不动', nextScene: 'stand_still', effect: { flags: { isPossessed: true }, gameOver: true } },
-                    { text: '念诵刚学的经文', nextScene: 'recite_defense', effect: { flags: { hasTalisman: true }, sanity: -30 } }
+                    { text: '念诵刚学的经文', nextScene: 'recite_defense', effect: { flags: { hasTalisman: true }, sanity: -12 } }
                 ]
             },
             go_to_room: {
                 text: '李叔带你来到二楼的一间客房。房间很简单，只是一张床和一个书桌，但收拾得很干净。\n\n"这是你今晚的房间。"他说道，"记住，不要回应任何敲门声，不要往窗外看，更不要...照镜子。"\n\n说完，他离开了房间，你还听到了锁门的声音。',
                 choices: [
-                    { text: '躺在床上休息', nextScene: 'rest_bed', effect: { sanity: 10 } },
+                    { text: '躺在床上休息', nextScene: 'rest_bed', effect: { sanity: -4 } },
                     { text: '查看书桌上的东西', nextScene: 'check_desk', effect: { flags: { knowsWellSecret: true } } },
-                    { text: '照镜子看看发生了什么', nextScene: 'look_mirror', effect: { sanity: -25, flags: { isPossessed: true } } }
+                    { text: '照镜子看看发生了什么', nextScene: 'look_mirror', effect: { sanity: -10, flags: { isPossessed: true } } }
                 ]
             },
             check_desk: {
                 text: '书桌上放着一本发黄的旧日记本。你打开看了看，上面记载着前几年住在这里的人的经历...\n\n"七月十五，他们说祭祀只是个形式。但我听到了井里的哭声...\n\n"七月十六，我看到了不该看的东西。她告诉了我关于古井的秘密...\n\n"七月十七，我想离开，但已经太晚了..."',
                 choices: [
-                    { text: '继续阅读日记', nextScene: 'continue_diary', effect: { sanity: -30, flags: { supernaturalEvents: 2 } } },
-                    { text: '合上日记去睡觉', nextScene: 'sleep_after_diary', effect: { sanity: -15 } },
+                    { text: '继续阅读日记', nextScene: 'continue_diary', effect: { sanity: -12, flags: { supernaturalEvents: 2 } } },
+                    { text: '合上日记去睡觉', nextScene: 'sleep_after_diary', effect: { sanity: -6 } },
                     { text: '寻找关于古井的更多线索', nextScene: 'search_well_clues', effect: { flags: { knowsWellSecret: true, supernaturalEvents: 1 } } }
                 ]
             },
             rest_bed: {
                 text: '你躺在床上，但无论如何也睡不着。外面传来各种奇怪的声音 - 有女人的哭泣声，有孩子的嬉笑声，还有...什么东西在爬行的声音。\n\n突然，门被敲响了："开门呀，我是李叔，有急事..."',
                 choices: [
-                    { text: '相信他是李叔，开门', nextScene: 'open_door_li', effect: { sanity: -40, flags: { isPossessed: true } } },
-                    { text: '不搭理，继续装睡', nextScene: 'ignore_knock', effect: { sanity: 5 } },
-                    { text: '问"你刚才不是说要待在房间里吗"', nextScene: 'question_knocker', effect: { sanity: -10 } }
+                    { text: '相信他是李叔，开门', nextScene: 'open_door_li', effect: { sanity: -2, flags: { isPossessed: true } } },
+                    { text: '不搭理，继续装睡', nextScene: 'ignore_knock', effect: { sanity: -6 } },
+                    { text: '问"你刚才不是说要待在房间里吗"', nextScene: 'question_knocker', effect: { sanity: -4 } }
+                ]
+            },
+            open_door_li: {
+                text: '你犹豫了一下，还是决定相信李叔。当你打开门的那一刻，你立即意识到自己犯了一个致命的错误...\\n\\n门外站的根本不是李叔！那是一个高大的身影，脸上带着诡异的笑容。"你终于开门了..."他的声音完全不像是人类的，"我已经等了你很久了..."\\n\\n你试图关上门，但一股巨大的力量猛地把门推开！那个人形的东西涌进了房间，你闻到了一股强烈的腐臭味...',
+                choices: [
+                    { text: '奋力逃跑', nextScene: 'rush_escape', effect: { sanity: -15 } },
+                    { text: '大呼救命', nextScene: 'scream_for_help', effect: { sanity: -10 } },
+                    { text: '拿出符纸', nextScene: 'use_talisman_door', effect: { sanity: -8, flags: { hasTalisman: false } } }
+                ]
+            },
+            scream_for_help: {
+                text: '你的救命声在房间里回荡，但那个怪物只是冷笑着。"没用的，这个村庄没有人会帮你。他们都在等着...等着新的祭品。"\\n\\n怪物慢慢向你逼近，你发现自己已经退到了墙角，无路可逃...\\n\\n"别担心，很快就会结束的。"怪物伸出利爪，"和之前的那些人一样，你会成为这个村庄的一部分，永远地..."\\n\\n【结局：新的祭品】\\n\\n你成为了这个村庄的又一个牺牲品，灵魂被永远囚禁在这片诅咒的土地上。',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            use_talisman_door: {
+                text: '你迅速掏出老人给的符纸，朝着怪物扔去！符纸在空中自燃，发出耀眼的金光！\\n\\n"啊——！"怪物发出一声凄厉的惨叫，身体开始扭曲变形，"镇魂符！你怎么会有这个东西？！不对...你身上的味道...你已经在中元节这天去过古井了..."\\n\\n怪物在光芒中逐渐消散，但它临死前的话让你感到了巨大的恐惧。你意识到，当你开门的那一刻，某种可怕的诅咒已经开始在你体内蔓延...',
+                choices: [
+                    { text: '赶紧离开村庄', nextScene: 'flee_village_immediately', effect: { sanity: -12 } },
+                    { text: '寻找更多关于古井的信息', nextScene: 'investigate_well_urgently', effect: { sanity: -8, flags: { knowsWellSecret: true } } },
+                    { text: '回到床上，假装什么都没发生', nextScene: 'pretend_sleep', effect: { sanity: -16 } }
+                ]
+            },
+            flee_village_immediately: {
+                text: '你不敢再在这个村庄多待一分钟。抓起简单的行李，你连夜逃离了这个诡异的地方...\\n\\n在你身后，整个村庄陷入了一片死寂。你知道自己虽然逃出来了，但那个夜晚的经历将永远困扰着你。\\n\\n【结局：惊恐逃离】\\n\\n你成功逃离了村庄，但付出的代价是沉重的。你知道自己永远无法忘记那个夜晚，无法忘记那些试图成为祭品的经历...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            investigate_well_urgently: {
+                text: '你意识到必须立刻了解古井的秘密，否则你可能真的会变成祭品。你冲出房间，直接奔向后院的那口古井...\\n\\n月光下，古井显得格外阴森。你向井里望去，看到了令你毛骨悚然的景象：水中倒映着的不是你的脸，而是无数张痛苦的面孔！\\n\\n"欢迎加入我们..."井中传来无数人的声音，"我们都是历年的祭品，现在轮到你了..."',
+                choices: [
+                    { text: '跳进古井', nextScene: 'jump_well', effect: { sanity: -20 } },
+                    { text: '用石头堵住古井', nextScene: 'seal_well', effect: { sanity: -6 } },
+                    { text: '寻找镇压古井的方法', nextScene: 'find_sealing_method', effect: { sanity: -4, flags: { knowsSecret: true } } }
+                ]
+            },
+            pretend_sleep: {
+                text: '你逃回床上，用被子蒙住头，假装刚才的一切都是噩梦...但那股腐臭味和房间里诡异的氛围提醒你，这一切都是真的。\\n\\n就在你瑟瑟发抖时，你感觉被子外面有什么东西在徘徊..."你知道没用的...诅咒已经开始，你已经不再是一个纯粹的人类了..."\\n\\n你掀开被子，发现自己的手上居然出现了诡异的纹路，皮肤也变得异常苍白...',
+                choices: [
+                    { text: '接受命运', nextScene: 'accept_fate_possessed', effect: { sanity: -30 } },
+                    { text: '疯狂地清洗身体', nextScene: 'wash_curse', effect: { sanity: -12 } },
+                    { text: '立即逃跑', nextScene: 'rush_escape', effect: { sanity: -8 } }
+                ]
+            },
+            accept_fate_possessed: {
+                text: '你放弃了抵抗，任由那股诡异的力量在体内流淌。渐渐地，你不再感到恐惧，反而有了一种奇怪的平静...\\n\\n你开始理解这个村庄的"规则"。每一个祭品都是为了让村庄继续存在下去，而现在，轮到你承担这个"责任"了。\\n\\n你拿起桌上的镜子，发现自己的眼睛已经变成了完全的黑色...\\n\\n【结局：成为诅咒的一部分】\\n\\n你成为了新的守村人，与其他祭品的灵魂一起，确保这个古老而邪恶的仪式能够永远延续下去...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            wash_curse: {
+                text: '你冲进浴室，疯狂地清洗自己的身体，但无论你怎么洗，那种被污染的感觉都无法消除。相反，你发现自己对水产生了前所未有的渴望...\\n\\n当你走出浴室时，听到窗外传来声音："没用的，你已经是井的一部分了...回来吧，回到我们的家..."\\n\\n你的身体开始不受控制地走向后院，走向那口古井...',
+                choices: [
+                    { text: '抗拒控制', nextScene: 'resist_control', effect: { sanity: -16 } },
+                    { text: '投降去古井', nextScene: 'jump_willfully', effect: { sanity: -25 } }
+                ]
+            },
+            resist_control: {
+                text: '你用尽全身力气抵抗那股诡异的拉力。在这个过程中，你想起了老人给你的建议："相信善意，拒绝邪恶"...\\n\\n突然，你感觉身上的力量减弱了。似乎你内心的善良真的可以对抗这种邪恶的力量！\\n\\n这时，天边开始出现亮光...黎明就要来了！那股控制你的力量在阳光即将出现时迅速消失了。\\n\\n【结局：黎明救赎】\\n\\n你成功抵抗了诅咒的侵蚀，当黎明的第一缕阳光照进村庄时，你发现自己已经安全了。虽然这个村庄的秘密依然存在，但至少你保住了自己的灵魂...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            jump_willfully: {
+                text: '你停止了抵抗，任由那股力量将你引向古井。当你站在井边时，你看到井水中倒映着的不再是你的脸，而是一个美丽的女孩...\\n\\n"我等了你很久了。"女孩的声音在井中回响，"现在我们终于可以在一起了，永远地..."\\n\\n你微笑着跳入了古井。在坠落的瞬间，你感觉自己融入了某种巨大的意识中，成为了这个古老诅咒的一部分...\\n\\n【结局：永恒的拥抱】\\n\\n你选择了与诅咒融为一体，在井底的黑暗王国中获得了一种扭曲的爱情和永恒的存在...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            jump_well: {
+                text: '你毫不犹豫地跳入了古井。在坠落的黑暗中，你听到了无数个声音在欢迎你...\\n\\n"欢迎回家，新的祭品...""不要害怕，我们会好好照顾你的...""很快你就会明白，这是最终的解脱..."\\n\\n当你落入井底时，你发现自己来到了一个完全由灵体构成的世界。无数个之前祭品的灵魂在那里等着你...\\n\\n【结局：灵魂归宿】\\n\\n你主动选择了成为祭品的道路，与其他灵魂一起被困在古井中，成为了诅咒的一部分...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            seal_well: {
+                text: '你试图用石头堵住古井，但每当一块石头落入井中，都会传来阵阵诡异的笑声..."你以为这样就有用吗？诅咒一旦开启，就无法阻止了..."\\n\\n井水开始沸腾，无数只手从井中伸了出来，想要把你拉下去！\\n\\n你拼命地推着石头，但越来越多的手抓住了你...\\n\\n【结局：被诅咒吞噬】\\n\\n你试图对抗诅咒，但最终成为了它的又一个受害者...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            find_sealing_method: {
+                text: '你想起村里有个很老的道士，也许他会知道如何镇压古井。你立刻赶到他的小屋...\\n\\n道士看到你时并不惊讶："我就知道你迟早会来。你身上的诅咒气息告诉我，你已经打开了一扇不该打开的门。"\\n\\n他给了你一个奇怪的法器："这是镇压鬼井的法器，但使用它的代价是...你可能也无法完全保持人性了。"\\n\\n你要接受这个代价吗？',
+                choices: [
+                    { text: '接受法器，镇压古井', nextScene: 'accept_sealing_artifact', effect: { sanity: -20, flags: { isHero: true } } },
+                    { text: '拒绝法器，寻找其他方法', nextScene: 'refuse_artifact', effect: { sanity: -10 } }
+                ]
+            },
+            accept_sealing_artifact: {
+                text: '你接过法器，立即感到一股巨大的力量流入体内。但与此同时，你也感觉到自己的人正在一点点流逝...\\n\\n"去吧。"道士叹息道，"成为村庄的守护者，或者...成为新的诅咒源泉。"\\n\\n你回到古井边，用法器镇压了井中的力量。井水平静了，但你知道，从这一刻起，你不再是一个普通人了...\\n\\n【结局：永恒的守护者】\\n\\n你牺牲了自己的人性，成为了这个村庄新的守护者。古井的平静得到了保证，但代价是你要永远与这些黑暗力量相连接...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            refuse_artifact: {
+                text: '你拒绝了道士的法器，决定寻找其他方法。但道士告诉你："时间不多了，中元节的诅咒已经启动，如果你在日出前找不到解决办法，就永远也回不去了..."\\n\\n你冲出道士的小屋，意识到自己正在与时间赛跑...\\n\\n就在这时，你注意到许多村民开始聚集起来，他们的眼神都异常地空洞和诡异...\\n\\n【结局：无尽的追逐】\\n\\n你拒绝了最后一次机会，最终被整个村庄的村民堵住。当他们围住你时，你发现他们已经不是活人了...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
                 ]
             },
             ignore_knock: {
                 text: '你选择不理会门外的声音。敲门声持续了很久，然后渐渐消失了。\n\n就在你松一口气的时候，窗外传来了声音："开门呀，我在这里..."一个女声在你耳边轻语。\n\n你惊恐地发现，声音不是从窗外传来的，而是从...房间里面！',
                 choices: [
-                    { text: '躲在被子里发抖', nextScene: 'hide_blanket', effect: { sanity: -20 } },
-                    { text: '冲向门口试图逃跑', nextScene: 'rush_escape', effect: { sanity: -30 } },
-                    { text: '大喊"我知道你是谁"', nextScene: 'confront_ghost', effect: { sanity: -10, flags: { hasTalisman: true } } }
+                    { text: '躲在被子里发抖', nextScene: 'hide_blanket', effect: { sanity: -8 } },
+                    { text: '冲向门口试图逃跑', nextScene: 'rush_escape', effect: { sanity: -12 } },
+                    { text: '大喊"我知道你是谁"', nextScene: 'confront_ghost', effect: { sanity: -4, flags: { hasTalisman: true } } }
                 ]
             },
             hide_blanket: {
                 text: '你躲进被子里，闭上眼睛，但那声音越来越近："出来吧，出来吧，不要害怕..."你感觉到有什么东西在触摸你的被子...\n\n突然，被子被掀开了！一个穿着白衣、长发遮脸的女孩正站在床边看着你...',
                 choices: [
-                    { text: '尖叫', nextScene: 'scream_encounter', effect: { sanity: -50 } },
-                    { text: '询问她是谁', nextScene: 'ask_ghost_identity', effect: { sanity: -30 } },
-                    { text: '拿出符纸护身', nextScene: 'use_talisman', effect: { sanity: -10, flags: { hasTalisman: false } } }
+                    { text: '尖叫', nextScene: 'scream_encounter', effect: { sanity: -20 } },
+                    { text: '询问她是谁', nextScene: 'ask_ghost_identity', effect: { sanity: -12 } },
+                    { text: '拿出符纸护身', nextScene: 'use_talisman', effect: { sanity: -4, flags: { hasTalisman: false } } }
                 ]
             },
             scream_encounter: {
@@ -860,24 +1156,24 @@
             use_talisman: {
                 text: '你想起老人给的符纸，立刻掏出贴身持有。符纸突然自燃，发出金色的光芒！\n\n"啊！"女孩发出一声惨叫，身形变得飘忽不定，"怎么会...你怎么会有镇魂符？\n\n光芒散去后，女孩消失了，但你听到她在远处说："你逃不掉的...七月十五之前，你必须选择..."',
                 choices: [
-                    { text: '立刻离开这个村庄', nextScene: 'flee_village', effect: { sanity: 10, trustLevel: -30 } },
-                    { text: '寻找更多镇魂符', nextScene: 'find_more_charms', effect: { sanity: -20 } },
-                    { text: '调查七月十五的秘密', nextScene: 'investigate_festival', effect: { sanity: -15 } }
+                    { text: '立刻离开这个村庄', nextScene: 'flee_village', effect: { sanity: -4, trustLevel: -30 } },
+                    { text: '寻找更多镇魂符', nextScene: 'find_more_charms', effect: { sanity: -8 } },
+                    { text: '调查七月十五的秘密', nextScene: 'investigate_festival', effect: { sanity: -6 } }
                 ]
             },
             investigate_festival: {
                 text: '你决定留下来调查七月十五的秘密。通过在村里的探索，你逐渐了解了真相：\n\n这个村庄有一个古老的诅咒，每年必须献祭一个外来者，才能保全村平安。那些"死去的人"，其实是历年的祭品...\n\n现在距离七月十五只有几天了，你必须想办法打破这个诅咒。',
                 choices: [
-                    { text: '尝试从内部破坏祭祀', nextScene: 'sabotage_ritual', effect: { sanity: -30 } },
-                    { text: '寻找诅咒的根源古井', nextScene: 'find_well_source', effect: { sanity: -40, flags: { knowsWellSecret: true } } },
+                    { text: '尝试从内部破坏祭祀', nextScene: 'sabotage_ritual', effect: { sanity: -12 } },
+                    { text: '寻找诅咒的根源古井', nextScene: 'find_well_source', effect: { sanity: -2, flags: { knowsWellSecret: true } } },
                     { text: '联合村民反抗', nextScene: 'unite_villagers', effect: { trustLevel: 50 } }
                 ]
             },
             unite_villagers: {
                 text: '你决定说服村民们一起反抗这个邪恶的传统。出乎意料的是，很多年轻人其实早就想改变这一切。\n\n"我奶奶就是前年的祭品..."一个年轻人说，"我们不能再这样下去了。"\n\n在越来越多村民的支持下，你们决定在七月十五那天举行反抗仪式...',
                 choices: [
-                    { text: '主持新的仪式驱逐邪灵', nextScene: 'new_exorcism', effect: { sanity: -20, trustLevel: 20 } },
-                    { text: '摧毁古井切断诅咒源头', nextScene: 'destroy_well', effect: { sanity: -50, flags: { supernaturalEvents: 5 } } },
+                    { text: '主持新的仪式驱逐邪灵', nextScene: 'new_exorcism', effect: { sanity: -8, trustLevel: 20 } },
+                    { text: '摧毁古井切断诅咒源头', nextScene: 'destroy_well', effect: { sanity: -20, flags: { supernaturalEvents: 5 } } },
                     { text: '用自己代替祭品换取村民解脱', nextScene: 'sacrifice_self', effect: { gameOver: true, goodEnding: true } }
                 ]
             },
@@ -890,9 +1186,9 @@
             destroy_well: {
                 text: '在村民的帮助下，你找到了那口被封印的古井。当井盖被打开的那一刻，无数怨灵涌出...\n\n"就是现在！"你大喊着，将火把扔向井内。井中传来一声巨响，整个地面开始震动。\n\n光芒过后，所有的怨灵都消失了，古井也坍塌了。诅咒终于被打破...',
                 choices: [
-                    { text: '离开村庄', nextScene: 'leave_freely', effect: { sanity: 50 } },
+                    { text: '离开村庄', nextScene: 'leave_freely', effect: { sanity: -20 } },
                     { text: '留下来帮助村民重建', nextScene: 'stay_rebuild', effect: { trustLevel: 100 } },
-                    { text: '记录这一切并发表', nextScene: 'publish_story', effect: { sanity: 30 } }
+                    { text: '记录这一切并发表', nextScene: 'publish_story', effect: { sanity: -12 } }
                 ]
             },
             leave_freely: {
@@ -912,58 +1208,58 @@
             accept_temple_visit: {
                 text: '"好，我明天一早就去。"你答道。\n\n老人满意地点点头："那就好，那就好..."说完，老人们便给你指了去宗祠的方向。\n\n你跟着指引来到了李氏宗祠，夜色深沉，只有远处偶尔传来几声狗吠。',
                 choices: [
-                    { text: '敲门询问住宿', nextScene: 'knock_ancestral_hall', effect: { sanity: 5 } },
-                    { text: '先在周围看看', nextScene: 'explore_hall_area', effect: { sanity: -5 } }
+                    { text: '敲门询问住宿', nextScene: 'knock_ancestral_hall', effect: { sanity: -6 } },
+                    { text: '先在周围看看', nextScene: 'explore_hall_area', effect: { sanity: -6 } }
                 ]
             },
             consider_temple: {
                 text: '"我会考虑的，谢谢前辈们的提醒。"你礼貌地回答。\n\n老人们互相看了看，没有再说什么。你独自一人向着村庄深处走去...\n\n月光透过云层洒在青石板路上，整座村庄陷入一种诡异的寂静之中。',
                 choices: [
                     { text: '去宗祠找住处', nextScene: 'find_lodging', effect: {} },
-                    { text: '找个地方先躲躲，等天亮', nextScene: 'hide_and_wait', effect: { sanity: -10 } }
+                    { text: '找个地方先躲躲，等天亮', nextScene: 'hide_and_wait', effect: { sanity: -4 } }
                 ]
             },
             explore_hall_area: {
                 text: '你决定先在宗祠周围探查一下。月色下，古老的建筑显得格外阴森。\n\n突然，你听到后院有奇怪的声音，像是有人在低声哭泣...',
                 choices: [
-                    { text: '循声而去', nextScene: 'follow_crying', effect: { flags: { supernaturalEvents: 1 }, sanity: -10 } },
-                    { text: '假装没听见，敲门', nextScene: 'knock_ancestral_hall', effect: { sanity: 5 } }
+                    { text: '循声而去', nextScene: 'follow_crying', effect: { flags: { supernaturalEvents: 1 }, sanity: -4 } },
+                    { text: '假装没听见，敲门', nextScene: 'knock_ancestral_hall', effect: { sanity: -6 } }
                 ]
             },
             hide_and_wait: {
                 text: '你在墙角找了个隐蔽的地方坐下。夜越来越深，寒意渐渐袭来。\n\n不知过了多久，你看到一个黑影从远处飘过，那身影...似乎没有脚！',
                 choices: [
-                    { text: '屏住呼吸不动', nextScene: 'hold_breath', effect: { sanity: -5 } },
-                    { text: '追上去看看', nextScene: 'chase_shadow', effect: { flags: { supernaturalEvents: 2 }, sanity: -20 } }
+                    { text: '屏住呼吸不动', nextScene: 'hold_breath', effect: { sanity: -6 } },
+                    { text: '追上去看看', nextScene: 'chase_shadow', effect: { flags: { supernaturalEvents: 2 }, sanity: -8 } }
                 ]
             },
             follow_crying: {
                 text: '你小心翼翼地循着哭声来到后院。月光斑驳中，你看到一个白衣女子跪在井边...\n\n当她回头时，你惊恐地发现——她没有脸！',
                 choices: [
-                    { text: '尖叫着逃跑', nextScene: 'scream_run', effect: { flags: { isPossessed: true }, sanity: -30 } },
-                    { text: '闭上眼睛念经', nextScene: 'chant_buddha', effect: { flags: { hasTalisman: true }, sanity: -10 } }
+                    { text: '尖叫着逃跑', nextScene: 'scream_run', effect: { flags: { isPossessed: true }, sanity: -12 } },
+                    { text: '闭上眼睛念经', nextScene: 'chant_buddha', effect: { flags: { hasTalisman: true }, sanity: -4 } }
                 ]
             },
             // 添加 recite_sutras, listen_to_voices, flee_banyan 场景
             recite_sutras: {
                 text: '你开始大声念诵经文。奇怪的是，那些低语声并没有消失，反而变得更加清晰...\n\n"没用的...经文救不了你..."一个女声在你耳边轻吻，"不如加入我们...永远留在这里..."\n\n你感觉到身体逐渐变得冰冷...',
                 choices: [
-                    { text: '继续念经，不求解脱', nextScene: 'continue_chanting', effect: { flags: { isPossessed: true }, sanity: -50 } },
-                    { text: '停止念经，转身逃跑', nextScene: 'stop_and_run', effect: { sanity: -15 } }
+                    { text: '继续念经，不求解脱', nextScene: 'continue_chanting', effect: { flags: { isPossessed: true }, sanity: -20 } },
+                    { text: '停止念经，转身逃跑', nextScene: 'stop_and_run', effect: { sanity: -6 } }
                 ]
             },
             listen_to_voices: {
                 text: '你静下心来仔细倾听。渐渐地，你听清了那些声音——它们在诉说自己的故事。\n\n"我是三年前来的学生..." "我是村里的新娘..." "我是献祭的孩子..." 无数个声音在你脑海中交织。\n\n突然，它们齐声说道："现在轮到你了...成为我们中的一员吧！"',
                 choices: [
                     { text: '接受邀请', nextScene: 'accept_invitation', effect: { flags: { isPossessed: true }, gameOver: true } },
-                    { text: '激烈反抗', nextScene: 'resist_voices', effect: { sanity: -40 } }
+                    { text: '激烈反抗', nextScene: 'resist_voices', effect: { sanity: -2 } }
                 ]
             },
             flee_banyan: {
                 text: '你立即转身离开榕树。但走了几步后，你发现周围的环境变得陌生起来...\n\n原本的村庄消失了，取而代之的是一片诡异的迷雾雾。你似乎进入了另一个空间。',
                 choices: [
-                    { text: '试图原路返回', nextScene: 'try_return', effect: { sanity: -10 } },
-                    { text: '在迷雾中寻找出路', nextScene: 'find_path_fog', effect: { sanity: -20 } }
+                    { text: '试图原路返回', nextScene: 'try_return', effect: { sanity: -4 } },
+                    { text: '在迷雾中寻找出路', nextScene: 'find_path_fog', effect: { sanity: -8 } }
                 ]
             },
             continue_chanting: {
@@ -975,8 +1271,8 @@
             stop_and_run: {
                 text: '你停止念经，转身就跑。心中的恐惧让你不敢回头，一口气跑到了村子深处。\n\n回头看时，榕树在月光下显得更加阴森...',
                 choices: [
-                    { text: '继续跑，远离榕树', nextScene: 'keep_running_away', effect: { sanity: -10 } },
-                    { text: '找个地方冷静一下', nextScene: 'calm_down', effect: { sanity: 5 } }
+                    { text: '继续跑，远离榕树', nextScene: 'keep_running_away', effect: { sanity: -4 } },
+                    { text: '找个地方冷静一下', nextScene: 'calm_down', effect: { sanity: -6 } }
                 ]
             },
             accept_invitation: {
@@ -988,29 +1284,29 @@
             resist_voices: {
                 text: '你用尽全身力气抵抗："不！我不会屈服！"\n\n强大的意志似乎起了作用，那些声音渐渐远去。你发现自己还站在榕树下，但已经大汗淋漓...',
                 choices: [
-                    { text: '立即离开这里', nextScene: 'leave_immediately', effect: { sanity: -20 } },
-                    { text: '研究榕树的秘密', nextScene: 'study_banyan', effect: { flags: { knowsWellSecret: true }, sanity: -30 } }
+                    { text: '立即离开这里', nextScene: 'leave_immediately', effect: { sanity: -8 } },
+                    { text: '研究榕树的秘密', nextScene: 'study_banyan', effect: { flags: { knowsWellSecret: true }, sanity: -12 } }
                 ]
             },
             try_return: {
                 text: '你试图按原路返回，但无论如何走，最终都会回到同一个地方——这棵诡异的榕树下。\n\n你意识到自己被困住了...',
                 choices: [
-                    { text: '放弃抵抗，接受命运', nextScene: 'accept_fate', effect: { flags: { isPossessed: true }, sanity: -40 } },
-                    { text: '破坏身边的红色丝带', nextScene: 'destroy_ribbons', effect: { sanity: -20 } }
+                    { text: '放弃抵抗，接受命运', nextScene: 'accept_fate', effect: { flags: { isPossessed: true }, sanity: -2 } },
+                    { text: '破坏身边的红色丝带', nextScene: 'destroy_ribbons', effect: { sanity: -8 } }
                 ]
             },
             find_path_fog: {
                 text: '你在迷雾中摸索前进。突然，你看到前方有一丝微光...\n\n朝着光亮走去，你发现自己回到了现实世界。但手中多了一样东西——一张古老的符纸。',
                 choices: [
                     { text: '仔细查看符纸', nextScene: 'examine_talisman', effect: { inventory: ['古老符纸'], flags: { hasTalisman: true } } },
-                    { text: '赶紧离开这个地方', nextScene: 'hurry_leave', effect: { sanity: -10 } }
+                    { text: '赶紧离开这个地方', nextScene: 'hurry_leave', effect: { sanity: -4 } }
                 ]
             },
             keep_running_away: {
                 text: '你一直跑，直到再也看不到榕树。在一处墙角停下来喘气...\n\n这时，你注意到墙上刻着一些奇怪的符号，像是某种警告。',
                 choices: [
-                    { text: '研究这些符号', nextScene: 'study_symbols', effect: { sanity: -10 } },
-                    { text: '继续远离', nextScene: 'continue_away', effect: { sanity: 5 } }
+                    { text: '研究这些符号', nextScene: 'study_symbols', effect: { sanity: -4 } },
+                    { text: '继续远离', nextScene: 'continue_away', effect: { sanity: -6 } }
                 ]
             },
             calm_down: {
@@ -1024,14 +1320,14 @@
                 text: '你头也不回地离开了榕树。这次的经历让你意识到，这个村庄的秘密远比你想象的要深险。',
                 choices: [
                     { text: '明天就离开这里', nextScene: 'plan_leave', effect: {} },
-                    { text: '为了论文，必须坚持下去', nextScene: 'persist_research', effect: { sanity: -20 } }
+                    { text: '为了论文，必须坚持下去', nextScene: 'persist_research', effect: { sanity: -8 } }
                 ]
             },
             study_banyan: {
                 text: '你决定研究这棵榕树。仔细观察后，你发现树干上刻满了小字——这是一个记录，记录着每年被献祭的人名。\n\n最新刻的名字竟然是...三年前失踪的那个学生！',
                 choices: [
                     { text: '把这个发现告诉村长', nextScene: 'inform_village_head', effect: { trustLevel: 20 } },
-                    { text: '偷偷调查这些名字', nextScene: 'investigate_names', effect: { sanity: -30 } }
+                    { text: '偷偷调查这些名字', nextScene: 'investigate_names', effect: { sanity: -12 } }
                 ]
             },
             accept_fate: {
@@ -1044,20 +1340,20 @@
                 text: '你开始撕扯那些红色丝带。每当一条丝带断裂，你似乎能听到一声解脱的叹息...。\n\n当所有丝带都被撕下后，迷雾散去，榕树变得普通起来。',
                 choices: [
                     { text: '调查树根下有什么', nextScene: 'check_roots', effect: { flags: { knowsWellSecret: true } } },
-                    { text: '任务完成，离开', nextScene: 'mission_complete', effect: { sanity: 30 } }
+                    { text: '任务完成，离开', nextScene: 'mission_complete', effect: { sanity: -12 } }
                 ]
             },
             examine_talisman: {
                 text: '符纸上用朱砂写着看不懂的咒文。虽然没有用，但拿着它，你感觉安心了不少。\n\n你意识到，这个村庄需要更深入的了解...',
                 choices: [
                     { text: '请教村里的老者', nextScene: 'consult_elder', effect: { trustLevel: 10 } },
-                    { text: '自己研究符纸', nextScene: 'research_talisman', effect: { sanity: -20 } }
+                    { text: '自己研究符纸', nextScene: 'research_talisman', effect: { sanity: -8 } }
                 ]
             },
             hurry_leave: {
                 text: '你拿着符纸快速离开。虽然不知道发生了什么，但直觉告诉你，刚才的经历改变了一些东西。',
                 choices: [
-                    { text: '找个安全的地方休息', nextScene: 'find_lodging', effect: { sanity: 10 } },
+                    { text: '找个安全的地方休息', nextScene: 'find_lodging', effect: { sanity: -4 } },
                     { text: '继续探索村庄', nextScene: 'wander_village', effect: {} }
                 ]
             },
@@ -1065,14 +1361,14 @@
                 text: '墙上的符号像是一种古老的警告。其中一些符号让你想起了在古籍中看到的关于"阴阳界限"的记载...',
                 choices: [
                     { text: '记录这些符号', nextScene: 'record_symbols', effect: { flags: { hasAncestralKey: true } } },
-                    { text: '无视警告继续', nextScene: 'ignore_warning_continue', effect: { sanity: -15 } }
+                    { text: '无视警告继续', nextScene: 'ignore_warning_continue', effect: { sanity: -6 } }
                 ]
             },
             continue_away: {
                 text: '你在村庄深处找到一个相对安全的角落。虽然逃离了险境，但心中的不安却越来越强...',
                 choices: [
-                    { text: '在这里过夜', nextScene: 'stay_here_night', effect: { sanity: -10 } },
-                    { text: '继续寻找线索', nextScene: 'search_clues', effect: { sanity: -20 } }
+                    { text: '在这里过夜', nextScene: 'stay_here_night', effect: { sanity: -4 } },
+                    { text: '继续寻找线索', nextScene: 'search_clues', effect: { sanity: -8 } }
                 ]
             },
             back_to_entrance: {
@@ -1092,51 +1388,51 @@
             chase_shadow: {
                 text: '你鼓起勇气追了上去。黑影似乎发现了你，突然停下，缓缓转身...\n\n那张脸你见过——是村口的一位老人！但她的眼睛里只有空洞的黑洞...\n\n"你也看到了...对吗？"她用非人的声音说道。',
                 choices: [
-                    { text: '点头示意', nextScene: 'nod_accept', effect: { flags: { isPossessed: true }, sanity: -40 } },
-                    { text: '转身就跑', nextScene: 'run_away_fast', effect: { sanity: -20 } }
+                    { text: '点头示意', nextScene: 'nod_accept', effect: { flags: { isPossessed: true }, sanity: -2 } },
+                    { text: '转身就跑', nextScene: 'run_away_fast', effect: { sanity: -8 } }
                 ]
             },
             // 添加更多缺失的场景
             leave_at_dawn: {
                 text: '天色微明，你决定离开这个诡异的地方。但当你走到村口时，却发现路已经被迷雾封锁...\n\n你意识到，这个村庄不会轻易让人离开。',
                 choices: [
-                    { text: '尝试冲出迷雾', nextScene: 'brave_fog', effect: { sanity: -20 } },
-                    { text: '另寻出路', nextScene: 'find_other_exit', effect: { sanity: -10 } }
+                    { text: '尝试冲出迷雾', nextScene: 'brave_fog', effect: { sanity: -8 } },
+                    { text: '另寻出路', nextScene: 'find_other_exit', effect: { sanity: -4 } }
                 ]
             },
             investigate_truth: {
                 text: '你必须揭开真相。这个村庄的秘密关乎太多无辜的生命...\n\n让你继续深入调查。',
                 choices: [
                     { text: '从古井开始', nextScene: 'start_from_well', effect: { flags: { knowsWellSecret: true } } },
-                    { text: '查阅村史资料', nextScene: 'check_village_history', effect: { sanity: -20 } }
+                    { text: '查阅村史资料', nextScene: 'check_village_history', effect: { sanity: -8 } }
                 ]
             },
             nod_accept: {
                 text: '你点了点头。瞬间，你的意识开始模糊...\n\n无数的记忆涌入你的脑海——那些曾经的祭品们的一生...',
                 choices: [
                     { text: '接受命运', nextScene: 'accept_fate', effect: { flags: { isPossessed: true }, gameOver: true } },
-                    { text: '激烈挣扎', nextScene: 'struggle_accept', effect: { sanity: -50 } }
+                    { text: '激烈挣扎', nextScene: 'struggle_accept', effect: { sanity: -20 } }
                 ]
             },
             run_away_fast: {
                 text: '你拼尽全力逃跑。身后传来奇怪的声音...\n\n"跑吧...我们会在下一个七月半等着你..."',
                 choices: [
                     { text: '跑出村庄', nextScene: 'run_out_village', effect: {} },
-                    { text: '找地方躲起来', nextScene: 'hide_away', effect: { sanity: -5 } }
+                    { text: '找地方躲起来', nextScene: 'hide_away', effect: { sanity: -6 } }
                 ]
             },
             ask_about_ritual: {
                 text: '李叔的脸色一变："祭祀是村子的大事，外人最好不要过问。"\n\n但看着你坚持的眼神，他叹了口气："好吧，但别说是我告诉你的..."',
                 choices: [
                     { text: '仔细聆听', nextScene: 'listen_careful', effect: { flags: { supernaturalEvents: 1 } } },
-                    { text: '暂时不问', nextScene: 'not_ask_now', effect: { sanity: 5 } }
+                    { text: '暂时不问', nextScene: 'not_ask_now', effect: { sanity: -6 } }
                 ]
             },
             plan_leave: {
                 text: '你决定明天就离开这个诡异的地方。但是今晚必须找个地方住下...',
                 choices: [
                     { text: '去宗祠过夜', nextScene: 'knock_ancestral_hall', effect: {} },
-                    { text: '找个废弃的房子', nextScene: 'find_abandoned_house', effect: { sanity: -15 } }
+                    { text: '找个废弃的房子', nextScene: 'find_abandoned_house', effect: { sanity: -6 } }
                 ]
             },
             persist_research: {
@@ -1150,7 +1446,7 @@
                 text: '你找到了村委会主任，把榕树上的发现告诉了他。\n\n主任的脸色变得很难看："这事...你最好不要再查了。有些事情不知道反而更好。"',
                 choices: [
                     { text: '坚持要知道真相', nextScene: 'demand_truth', effect: { trustLevel: -20 } },
-                    { text: '表示理解但暗自调查', nextScene: 'secret_investigate', effect: { sanity: -10 } }
+                    { text: '表示理解但暗自调查', nextScene: 'secret_investigate', effect: { sanity: -4 } }
                 ]
             },
             investigate_names: {
@@ -1171,7 +1467,7 @@
                 text: '你感觉自己完成了一些重要的事情。虽然还不知道具体是什么，但心灵感觉平静了许多。\n\n是时候继续你的旅程了...',
                 choices: [
                     { text: '完成论文离开', nextScene: 'complete_thesis', effect: { trustLevel: 30 } },
-                    { text: '留下深入调查', nextScene: 'stay_investigate', effect: { sanity: -30 } }
+                    { text: '留下深入调查', nextScene: 'stay_investigate', effect: { sanity: -12 } }
                 ]
             },
             consult_elder: {
@@ -1184,35 +1480,35 @@
             research_talisman: {
                 text: '你回到住处，拿出纸笔临摹符纸上的咒文。渐渐地，你发现这些字符似乎蕴含着某种力量...\n\n突然，符纸发光了！',
                 choices: [
-                    { text: '扔掉符纸', nextScene: 'throw_talisman_away', effect: { flags: { hasTalisman: false }, sanity: 10 } },
-                    { text: '继续研究', nextScene: 'continue_study', effect: { sanity: -40 } }
+                    { text: '扔掉符纸', nextScene: 'throw_talisman_away', effect: { flags: { hasTalisman: false }, sanity: -4 } },
+                    { text: '继续研究', nextScene: 'continue_study', effect: { sanity: -2 } }
                 ]
             },
             record_symbols: {
                 text: '你用相机拍下墙上的符号。这些符号似乎形成了某种阵法...\n\n就在你拍完最后一张时，符号突然发光了！',
                 choices: [
-                    { text: '赶紧离开', nextScene: 'leave_quickly', effect: { sanity: 5 } },
-                    { text: '触摸发光的符号', nextScene: 'touch_glowing', effect: { sanity: -30 } }
+                    { text: '赶紧离开', nextScene: 'leave_quickly', effect: { sanity: -6 } },
+                    { text: '触摸发光的符号', nextScene: 'touch_glowing', effect: { sanity: -12 } }
                 ]
             },
             ignore_warning_continue: {
                 text: '你无视警告，继续前进。但心中总有一种不安的感觉...\n\n走了没多远，你发现自己又回到了原处——这些符号似乎构成了一个迷宫。',
                 choices: [
-                    { text: '寻找真正的出口', nextScene: 'find_real_exit', effect: { sanity: -20 } },
-                    { text: '破解符号密码', nextScene: 'decode_symbols', effect: { flags: { hasAncestralKey: true }, sanity: -30 } }
+                    { text: '寻找真正的出口', nextScene: 'find_real_exit', effect: { sanity: -8 } },
+                    { text: '破解符号密码', nextScene: 'decode_symbols', effect: { flags: { hasAncestralKey: true }, sanity: -12 } }
                 ]
             },
             stay_here_night: {
                 text: '你找了个屋檐下过夜。午夜时分，你被寒意惊醒...\n\n月光下，你看到对面屋顶上有几个黑影在跳动...\n\n它们发现你了！',
                 choices: [
-                    { text: '装死不动', nextScene: 'play_dead', effect: { sanity: -10 } },
-                    { text: '发出声响吓走它们', nextScene: 'make_noise', effect: { sanity: -20 } }
+                    { text: '装死不动', nextScene: 'play_dead', effect: { sanity: -4 } },
+                    { text: '发出声响吓走它们', nextScene: 'make_noise', effect: { sanity: -8 } }
                 ]
             },
             search_clues: {
                 text: '你开始在村庄四处寻找线索。在一间废弃的房屋里，你发现了一些奇怪的物品...\n\n枕头下有本日记，最后一页写着："它们来找我了...我必须把这些留给下一个来的人..."',
                 choices: [
-                    { text: '仔细阅读日记', nextScene: 'read_haunted_diary', effect: { flags: { knowsWellSecret: true }, sanity: -40 } },
+                    { text: '仔细阅读日记', nextScene: 'read_haunted_diary', effect: { flags: { knowsWellSecret: true }, sanity: -2 } },
                     { text: '带走日记离开', nextScene: 'take_haunted_diary', effect: { inventory: ['染血的手稿'] } }
                 ]
             },
@@ -1220,53 +1516,53 @@
                 text: '你再次走近榕树。这一次，你注意到树根下有什么东西在发光...\n\n走近一看，是一个古老的护身符！',
                 choices: [
                     { text: '捡起护身符', nextScene: 'pickup_amulet', effect: { inventory: ['神秘护身符'], flags: { hasTalisman: true } } },
-                    { text: '小心地观察', nextScene: 'observe_carefully', effect: { sanity: 5 } }
+                    { text: '小心地观察', nextScene: 'observe_carefully', effect: { sanity: -6 } }
                 ]
             },
             direct_to_village: {
                 text: '你决定不再关注榕树，直接进入村庄深处寻找答案。\n\n村子里依旧空无一人，但气氛似乎更加诡异了...',
                 choices: [
-                    { text: '大声呼喊找人', nextScene: 'shout_for_help', effect: { sanity: -15 } },
-                    { text: '挨家挨户查看', nextScene: 'check_houses', effect: { sanity: -10 } }
+                    { text: '大声呼喊找人', nextScene: 'shout_for_help', effect: { sanity: -6 } },
+                    { text: '挨家挨户查看', nextScene: 'check_houses', effect: { sanity: -12 } }
                 ]
             },
             scream_run: {
                 text: '你失声尖叫，转身就跑。身后传来诡异的笑声...\n\n跑着跑着，你发现自己又回到了榕树下。',
                 choices: [
-                    { text: '再次逃跑', nextScene: 'run_again', effect: { flags: { supernaturalEvents: 2 }, sanity: -30 } },
-                    { text: '背对榕树许愿', nextScene: 'make_wish', effect: { flags: { isPossessed: true }, sanity: -20 } }
+                    { text: '再次逃跑', nextScene: 'run_again', effect: { flags: { supernaturalEvents: 2 }, sanity: -12 } },
+                    { text: '背对榕树许愿', nextScene: 'make_wish', effect: { flags: { isPossessed: true }, sanity: -8 } }
                 ]
             },
             chant_buddha: {
                 text: '你闭上眼睛开始念经。出乎意料的是，经文似乎真的起了作用...\n\n眼前的幻象消失了，你发现自己还站在原地。',
                 choices: [
-                    { text: '念更多经文保佑', nextScene: 'chant_more', effect: { sanity: 10 } },
-                    { text: '念完就走', nextScene: 'finish_chanting', effect: { sanity: 5 } }
+                    { text: '念更多经文保佑', nextScene: 'chant_more', effect: { sanity: -4 } },
+                    { text: '念完就走', nextScene: 'finish_chanting', effect: { sanity: -6 } }
                 ]
             },
             // 添加缺失的其他场景
             enter_ancestral_hall: {
                 text: '你进入了李氏宗祠。里面供奉着祖先牌位，香火不断。\n\n守祠人李叔从后面走出来："就是你了？老人们已经说过了。跟我来吧。"',
                 choices: [
-                    { text: '跟着他去房间', nextScene: 'go_to_room', effect: { sanity: -5 } },
-                    { text: '询问关于祭祀的事', nextScene: 'ask_about_ritual', effect: { sanity: -10 } }
+                    { text: '跟着他去房间', nextScene: 'go_to_room', effect: { sanity: -6 } },
+                    { text: '询问关于祭祀的事', nextScene: 'ask_about_ritual', effect: { sanity: -4 } }
                 ]
             },
             // 添加缺失的古井相关场景
             search_well_clues: {
                 text: '你开始在房间里仔细寻找关于古井的线索。\\n\\n在床下的暗格里，你发现了一叠剪报和几张照片...\\n\\n这些记录显示，过去十年间，每到中元节后，都会有一个外来者神秘失踪。警方调查无果，最终都被定性为意外。\\n\\n其中一张照片的背面写着："他们在井下等着我...下一个可能就是看这张照片的人..."',
                 choices: [
-                    { text: '继续深挖这些失踪案件', nextScene: 'investigate_disappearances', effect: { sanity: -40, flags: { supernaturalEvents: 3 } } },
-                    { text: '今晚就去古井看看', nextScene: 'investigate_well_night', effect: { sanity: -30, flags: { knowsWellSecret: true } } },
-                    { text: '把证据收好，先睡觉', nextScene: 'sleep_with_evidence', effect: { sanity: -10 } }
+                    { text: '继续深挖这些失踪案件', nextScene: 'investigate_disappearances', effect: { sanity: -2, flags: { supernaturalEvents: 3 } } },
+                    { text: '今晚就去古井看看', nextScene: 'investigate_well_night', effect: { sanity: -12, flags: { knowsWellSecret: true } } },
+                    { text: '把证据收好，先睡觉', nextScene: 'sleep_with_evidence', effect: { sanity: -4 } }
                 ]
             },
             investigate_well_night: {
                 text: '深夜，你悄悄来到后院。月光下，古井显得格外阴森...\\n\\n井口的石板似乎被移动过，隐约能看到井下有什么东西在发光。\\n\\n突然，一只冰冷的手搭在了你的肩膀上！',
                 choices: [
-                    { text: '惊叫着推开它', nextScene: 'push_figure', effect: { sanity: -20 } },
-                    { text: '慢慢回头看是谁', nextScene: 'check_behind', effect: { sanity: -15 } },
-                    { text: '念经保佑', nextScene: 'chant_protection', effect: { sanity: 5 } }
+                    { text: '惊叫着推开它', nextScene: 'push_figure', effect: { sanity: -8 } },
+                    { text: '慢慢回头看是谁', nextScene: 'check_behind', effect: { sanity: -6 } },
+                    { text: '念经保佑', nextScene: 'chant_protection', effect: { sanity: -6 } }
                 ]
             },
             investigate_disappearances: {
@@ -1278,26 +1574,26 @@
             find_well_source: {
                 text: '你找到了那口传说中的古井。井口被层层符纸封印，但仍能感受到下面传来的强大邪气...\\n\\n仔细观察后，你发现这些符纸并非镇压，而是在维持某种平衡。\\n\\n井底传来声音："外面的人...封印快要维持不住了...你需要做出选择..."',
                 choices: [
-                    { text: '加固封印', nextScene: 'strengthen_seal', effect: { sanity: -30, flags: { hasAncestralKey: true } } },
-                    { text: '打破封印', nextScene: 'break_seal', effect: { sanity: -50, flags: { supernaturalEvents: 5 } } },
-                    { text: '下井看看', nextScene: 'descend_well', effect: { sanity: -70, flags: { isLost: true } } }
+                    { text: '加固封印', nextScene: 'strengthen_seal', effect: { sanity: -12, flags: { hasAncestralKey: true } } },
+                    { text: '打破封印', nextScene: 'break_seal', effect: { sanity: -20, flags: { supernaturalEvents: 5 } } },
+                    { text: '下井看看', nextScene: 'descend_well', effect: { sanity: -28, flags: { isLost: true } } }
                 ]
             },
             start_from_well: {
                 text: '你决定从古井开始调查。根据日记的描述，井里封印着某种古老的东西...\\n\\n来到后院，你发现井口不仅有符纸，还有一个复杂的法阵。\\n\\n正当你仔细研究时，守祠人出现在你身后："你在找什么？有些东西，还是不碰为好。"',
                 choices: [
                     { text: '询问实话实说', nextScene: 'honest_inquiry', effect: { trustLevel: 10 } },
-                    { text: '假装只是好奇', nextScene: 'pretend_curiosity', effect: { sanity: 5 } },
-                    { text: '直接询问古井的秘密', nextScene: 'demand_well_secret', effect: { sanity: -20, trustLevel: -20 } }
+                    { text: '假装只是好奇', nextScene: 'pretend_curiosity', effect: { sanity: -6 } },
+                    { text: '直接询问古井的秘密', nextScene: 'demand_well_secret', effect: { sanity: -8, trustLevel: -20 } }
                 ]
             },
             // 添加缺失的场景
             listen_careful: {
                 text: '李叔压低声音："每年的七月十五，村子都要举行祭祀... 但不是拜神，而是送鬼。"\\n\\n他颤抖着说："需要一个外乡人作为祭品，才能安抚那些不得超生的冤魂...今年，因为疫情封路，断了祭品来源..."\\n\\n突然，窗外传来一声女人的哭泣，李叔立刻闭嘴："有人在听，我先走了，你最好忘了今天的话。"',
                 choices: [
-                    { text: '追问更多细节', nextScene: 'demand_details', effect: { flags: { knowsWellSecret: true }, sanity: -20 } },
-                    { text: '假装没听到，回房间', nextScene: 'go_to_room', effect: { sanity: 10 } },
-                    { text: '立即调查哭泣声来源', nextScene: 'investigate_crying', effect: { flags: { supernaturalEvents: 2 }, sanity: -30 } }
+                    { text: '追问更多细节', nextScene: 'demand_details', effect: { flags: { knowsWellSecret: true }, sanity: -8 } },
+                    { text: '假装没听到，回房间', nextScene: 'go_to_room', effect: { sanity: -4 } },
+                    { text: '立即调查哭泣声来源', nextScene: 'investigate_crying', effect: { flags: { supernaturalEvents: 2 }, sanity: -12 } }
                 ]
             },
             investigate_crying: {
@@ -1309,25 +1605,25 @@
             demand_details: {
                 text: '李叔的眼神变得恐惧："你疯了？说了就要死人的！"\\n\\n他急匆匆地离开，连再见都没说。\\n\\n房间里只剩下你一个人，窗外的哭声越来越响了...',
                 choices: [
-                    { text: '锁紧门窗睡觉', nextScene: 'lock_hall_door', effect: { sanity: -10 } },
-                    { text: '拿手机录音作为证据', nextScene: 'record_evidence', effect: { flags: { hasEvidence: true }, sanity: -15 } },
-                    { text: '大胆出去查看', nextScene: 'brave_check', effect: { sanity: -40 } }
+                    { text: '锁紧门窗睡觉', nextScene: 'lock_hall_door', effect: { sanity: -4 } },
+                    { text: '拿手机录音作为证据', nextScene: 'record_evidence', effect: { flags: { hasEvidence: true }, sanity: -6 } },
+                    { text: '大胆出去查看', nextScene: 'brave_check', effect: { sanity: -2 } }
                 ]
             },
             record_evidence: {
                 text: '你悄悄用手机录下了窗外的诡异声音。\\n\\n录音里不仅有哭声，还有许多人的低语，仔细听能听到："来吧...下一个就是你了..."\\n\\n手机突然黑屏，屏幕上显示出血红色的字："你录下了不该录的东西"',
                 choices: [
-                    { text: '立刻扔掉手机', nextScene: 'throw_phone', effect: { inventory: [], sanity: -20 } },
-                    { text: '试图删除录音', nextScene: 'delete_recording', effect: { sanity: -30, flags: { supernaturalEvents: 3 } } },
-                    { text: '继续录音看看会发生什么', nextScene: 'continue_recording', effect: { sanity: -50, gameOver: true } }
+                    { text: '立刻扔掉手机', nextScene: 'throw_phone', effect: { inventory: [], sanity: -8 } },
+                    { text: '试图删除录音', nextScene: 'delete_recording', effect: { sanity: -12, flags: { supernaturalEvents: 3 } } },
+                    { text: '继续录音看看会发生什么', nextScene: 'continue_recording', effect: { sanity: -20, gameOver: true } }
                 ]
             },
             brave_check: {
                 text: '你鼓起勇气走到院子里，寒意袭来...\\n\\n突然，一只冰冷的手从背后搭在你的肩上！\\n\\n"找什么呢，同学？"一个温柔但冰冷的声音响起...',
                 choices: [
-                    { text: '慢慢回头', nextScene: 'slowly_turn', effect: { flags: { isPossessed: true }, sanity: -60 } },
-                    { text: '哭喊着逃跑', nextScene: 'scream_run', effect: { sanity: -30 } },
-                    { text: '装死不动', nextScene: 'play_dead', effect: { sanity: -10 } }
+                    { text: '慢慢回头', nextScene: 'slowly_turn', effect: { flags: { isPossessed: true }, sanity: -24 } },
+                    { text: '哭喊着逃跑', nextScene: 'scream_run', effect: { sanity: -12 } },
+                    { text: '装死不动', nextScene: 'play_dead', effect: { sanity: -4 } }
                 ]
             },
             slowly_turn: {
@@ -1339,26 +1635,26 @@
             throw_phone: {
                 text: '你把手机狠狠扔在地上，手机屏幕碎裂，但诡异的是，那些低语声还在继续，现在直接在你耳边响起！',
                 choices: [
-                    { text: '塞住耳朵', nextScene: 'cover_ears', effect: { sanity: -20 } },
-                    { text: '念经驱邪', nextScene: 'chant_protection', effect: { sanity: 5 } },
-                    { text: '大声唱儿歌壮胆', nextScene: 'sing_loudly', effect: { sanity: -40 } }
+                    { text: '塞住耳朵', nextScene: 'cover_ears', effect: { sanity: -8 } },
+                    { text: '念经驱邪', nextScene: 'chant_protection', effect: { sanity: -6 } },
+                    { text: '大声唱儿歌壮胆', nextScene: 'sing_loudly', effect: { sanity: -2 } }
                 ]
             },
             delete_recording: {
                 text: '你疯狂地删除录音，但每次删除后文件都会重新出现！\\n\\n最后，手机里弹出一个消息："删不掉的...因为是你的声音"',
                 choices: [
-                    { text: '砸碎手机', nextScene: 'throw_phone', effect: { inventory: [], sanity: -30 } },
-                    { text: '检查自己是不是在做梦', nextScene: 'check_dream', effect: { sanity: -50 } },
-                    { text: '用手机录像看看自己', nextScene: 'record_self', effect: { sanity: -70, gameOver: true } }
+                    { text: '砸碎手机', nextScene: 'throw_phone', effect: { inventory: [], sanity: -12 } },
+                    { text: '检查自己是不是在做梦', nextScene: 'check_dream', effect: { sanity: -20 } },
+                    { text: '用手机录像看看自己', nextScene: 'record_self', effect: { sanity: -28, gameOver: true } }
                 ]
             },
             // 紧急修复：添加缺失的场景定义
             check_dream: {
                 text: '你狠狠掐了自己一下，很疼，这不是梦！\\n\\n但周围的一切开始变得扭曲诡异，墙壁上的符纸在慢慢移动...\\n\\n你意识到自己可能陷入了某种超自然状态。',
                 choices: [
-                    { text: '闭上眼睛强行醒来', nextScene: 'force_wake', effect: { sanity: -40 } },
-                    { text: '继续观察诡异现象', nextScene: 'observe_weird', effect: { sanity: -60 } },
-                    { text: '大声呼救', nextScene: 'scream_help', effect: { sanity: -30 } }
+                    { text: '闭上眼睛强行醒来', nextScene: 'force_wake', effect: { sanity: -2 } },
+                    { text: '继续观察诡异现象', nextScene: 'observe_weird', effect: { sanity: -24 } },
+                    { text: '大声呼救', nextScene: 'scream_help', effect: { sanity: -12 } }
                 ]
             },
             record_self: {
@@ -1382,9 +1678,9 @@
             cover_ears: {
                 text: '你用双手紧紧塞住耳朵，但那些声音竟然是从脑子里传来的！\\n\\n你听到了更清晰的低语："没用的...我们就在这里...在你心里..."',
                 choices: [
-                    { text: '心理治疗对抗', nextScene: 'mental_fight', effect: { sanity: -50 } },
-                    { text: '用更大的声音覆盖', nextScene: 'sound_cover', effect: { sanity: -30 } },
-                    { text: '接受它们的存在', nextScene: 'accept_whispers', effect: { flags: { isPossessed: true }, sanity: -70 } }
+                    { text: '心理治疗对抗', nextScene: 'mental_fight', effect: { sanity: -20 } },
+                    { text: '用更大的声音覆盖', nextScene: 'sound_cover', effect: { sanity: -12 } },
+                    { text: '接受它们的存在', nextScene: 'accept_whispers', effect: { flags: { isPossessed: true }, sanity: -28 } }
                 ]
             },
             sing_loudly: {
@@ -1396,48 +1692,48 @@
             force_wake: {
                 text: '你用尽全力想要醒来，眼前开始剧烈晃动...\\n\\n突然，你睁开了眼睛，发现自己还在房间里。\\n\\n但李叔已经不在了，只有桌上那盏油灯还在发出微弱的光。',
                 choices: [
-                    { text: '检查房间状况', nextScene: 'go_to_room', effect: { sanity: -10 } },
-                    { text: '立即离开祠堂', nextScene: 'flee_hall', effect: { sanity: -20 } }
+                    { text: '检查房间状况', nextScene: 'go_to_room', effect: { sanity: -4 } },
+                    { text: '立即离开祠堂', nextScene: 'flee_hall', effect: { sanity: -8 } }
                 ]
             },
             observe_weird: {
                 text: '你静静观察着诡异的现象，符纸在墙壁上缓缓爬行，桌上的物品自己移动...\\n\\n渐渐地，你意识到这不仅仅是超自然现象，这是一个警告！',
                 choices: [
-                    { text: '立即逃离这个地方', nextScene: 'flee_hall', effect: { sanity: -15 } },
-                    { text: '尝试与神秘现象对话', nextScene: 'talk_to_weird', effect: { sanity: -40 } },
-                    { text: '用手机录像记录下来', nextScene: 'record_weird', effect: { sanity: -25 } }
+                    { text: '立即逃离这个地方', nextScene: 'flee_hall', effect: { sanity: -6 } },
+                    { text: '尝试与神秘现象对话', nextScene: 'talk_to_weird', effect: { sanity: -2 } },
+                    { text: '用手机录像记录下来', nextScene: 'record_weird', effect: { sanity: -10 } }
                 ]
             },
             mental_fight: {
                 text: '你开始在心里默念数学公式、物理定律，试图用理性对抗这些侵入...\\n\\n"科学救不了你..."一个声音嘲笑道。\\n\\n你的理性正在崩塌...',
                 choices: [
-                    { text: '转换思路用宗教对抗', nextScene: 'religious_fight', effect: { sanity: -30 } },
-                    { text: '接受超自然的存在', nextScene: 'accept_supernatural', effect: { sanity: -50 } },
-                    { text: '疯狂尖叫寻求解脱', nextScene: 'scream_escape', effect: { sanity: -70 } }
+                    { text: '转换思路用宗教对抗', nextScene: 'religious_fight', effect: { sanity: -12 } },
+                    { text: '接受超自然的存在', nextScene: 'accept_supernatural', effect: { sanity: -20 } },
+                    { text: '疯狂尖叫寻求解脱', nextScene: 'scream_escape', effect: { sanity: -28 } }
                 ]
             },
             // 添加缺失的场景定义
             wander_village: {
                 text: '你在村子里漫无目的地走着。\\n\\n古老的建筑静静地矗立着，仿佛每一块砖瓦都在诉说着往事。空气中那股若有若无的香火味似乎更浓了。\\n\\n转了几个弯后，你发现自己又回到了村口的大榕树下...',
                 choices: [
-                    { text: '再次观察榕树', nextScene: 'observe_village', effect: { sanity: -5 } },
+                    { text: '再次观察榕树', nextScene: 'observe_village', effect: { sanity: -6 } },
                     { text: '去宗祠看看', nextScene: 'find_lodging', effect: {} },
-                    { text: '找其他住处', nextScene: 'find_other_house', effect: { sanity: -10 } }
+                    { text: '找其他住处', nextScene: 'find_other_house', effect: { sanity: -4 } }
                 ]
             },
             refuse_talisman_story: {
                 text: '"年轻人，太自信了。"老人摇了摇头，"希望你不会后悔。"\\n\\n他将符纸收了回去，眼神中闪过一丝怜悯。\\n\\n"记住，如果遇到无法理解的事情，立即离开村子。"',
                 choices: [
-                    { text: '坚持自己的决定', nextScene: 'find_lodging', effect: { sanity: -10 } },
-                    { text: '改变主意索要符纸', nextScene: 'accept_talisman', effect: { sanity: 5, flags: { hasTalisman: true } } },
-                    { text: '询问更多关于村子的事情', nextScene: 'ask_about_secrets', effect: { sanity: -15 } }
+                    { text: '坚持自己的决定', nextScene: 'find_lodging', effect: { sanity: -4 } },
+                    { text: '改变主意索要符纸', nextScene: 'accept_talisman', effect: { sanity: -6, flags: { hasTalisman: true } } },
+                    { text: '询问更多关于村子的事情', nextScene: 'ask_about_secrets', effect: { sanity: -6 } }
                 ]
             },
             brave_fog: {
                 text: '你鼓起勇气冲进迷雾中。\\n\\n浓雾立刻包围了你，能见度不足一米。奇怪的声响从四面八方传来，仿佛有什么东西在雾中游走。\\n\\n几分钟后，你发现自己又回到了村口...',
                 choices: [
-                    { text: '再次尝试离开', nextScene: 'find_lodging', effect: { sanity: -20 } },
-                    { text: '留在村里', nextScene: 'find_other_house', effect: { sanity: -10 } },
+                    { text: '再次尝试离开', nextScene: 'find_lodging', effect: { sanity: -8 } },
+                    { text: '留在村里', nextScene: 'find_other_house', effect: { sanity: -4 } },
                     { text: '寻找地势高的地方', nextScene: 'village_entrance', effect: {} }
                 ]
             },
@@ -1445,79 +1741,79 @@
             check_village_history: {
                 text: '你向村里的老人询问村庄的历史。\\n\\n"这个村子有几百年了，"老人缓缓说道，"经历过很多事，有些事是不能外传的。"\\n\\n他的眼神变得警惕起来。',
                 choices: [
-                    { text: '尊重地停止询问', nextScene: 'consult_elder', effect: { sanity: 5 } },
-                    { text: '坚持追问', nextScene: 'investigate_truth', effect: { sanity: -15 } },
+                    { text: '尊重地停止询问', nextScene: 'consult_elder', effect: { sanity: -6 } },
+                    { text: '坚持追问', nextScene: 'investigate_truth', effect: { sanity: -6 } },
                     { text: '转移话题', nextScene: 'talk_to_elders', effect: {} }
                 ]
             },
             read_diary: {
                 text: '你翻开那本陈旧的日记。\\n\\n泛黄的纸页上记载着一些令人不安的内容...\\n\\n"七月十五，又有一个人失踪了...祭祀必须继续..."\\n\\n日记的内容让你不寒而栗。',
                 choices: [
-                    { text: '继续阅读', nextScene: 'check_desk', effect: { sanity: -20 } },
-                    { text: '合上日记', nextScene: 'rest_bed', effect: { sanity: -10 } },
+                    { text: '继续阅读', nextScene: 'check_desk', effect: { sanity: -8 } },
+                    { text: '合上日记', nextScene: 'rest_bed', effect: { sanity: -4 } },
                     { text: '带走日记', nextScene: 'mission_complete', effect: { inventory: ['神秘日记'] } }
                 ]
             },
             take_diary: {
                 text: '你决定将日记带走，也许这能作为证据。\\n\\n就在你收起日记的时候，门外传来了一阵脚步声...',
                 choices: [
-                    { text: '赶紧躲起来', nextScene: 'hide_blanket', effect: { sanity: -15 } },
-                    { text: '直面门外的声音', nextScene: 'ignore_knock', effect: { sanity: -20 } },
+                    { text: '赶紧躲起来', nextScene: 'hide_blanket', effect: { sanity: -6 } },
+                    { text: '直面门外的声音', nextScene: 'ignore_knock', effect: { sanity: -8 } },
                     { text: '装睡', nextScene: 'rest_bed', effect: {} }
                 ]
             },
             complete_thesis: {
                 text: '你完成了关于这个村庄的调查报告。\\n\\n虽然有些真相令人不安，但你相信这些记录对民俗学研究具有重要意义。\\n\\n你决定是否公开这些发现...',
                 choices: [
-                    { text: '公开发表研究报告', nextScene: 'leave_freely', effect: { sanity: 10 } },
-                    { text: '保守秘密', nextScene: 'mission_complete', effect: { sanity: -5 } },
-                    { text: '深入调查后再决定', nextScene: 'investigate_truth', effect: { sanity: -10 } }
+                    { text: '公开发表研究报告', nextScene: 'leave_freely', effect: { sanity: -4 } },
+                    { text: '保守秘密', nextScene: 'mission_complete', effect: { sanity: -6 } },
+                    { text: '深入调查后再决定', nextScene: 'investigate_truth', effect: { sanity: -12 } }
                 ]
             },
             scream_help: {
                 text: '你尖叫着呼救，但回应你的只有空旷的回声。\\n\\n周围的环境似乎变得更加诡异了...',
                 choices: [
-                    { text: '继续呼救', nextScene: 'rest_bed', effect: { sanity: -25 } },
-                    { text: '保持安静', nextScene: 'check_dream', effect: { sanity: -5 } },
-                    { text: '尝试醒来', nextScene: 'force_wake', effect: { sanity: -15 } }
+                    { text: '继续呼救', nextScene: 'rest_bed', effect: { sanity: -10 } },
+                    { text: '保持安静', nextScene: 'check_dream', effect: { sanity: -6 } },
+                    { text: '尝试醒来', nextScene: 'force_wake', effect: { sanity: -9 } }
                 ]
             },
             sound_cover: {
                 text: '你试图用更大的声音覆盖那些低语。\\n\\n你开始大声唱歌，但那些声音反而变得更加清晰，仿佛就在你的耳边...',
                 choices: [
-                    { text: '继续制造声音', nextScene: 'use_talisman', effect: { sanity: -30 } },
-                    { text: '停下来倾听', nextScene: 'accept_whispers', effect: { sanity: -20 } },
-                    { text: '塞住耳朵', nextScene: 'cover_ears', effect: { sanity: -10 } }
+                    { text: '继续制造声音', nextScene: 'use_talisman', effect: { sanity: -12 } },
+                    { text: '停下来倾听', nextScene: 'accept_whispers', effect: { sanity: -8 } },
+                    { text: '塞住耳朵', nextScene: 'cover_ears', effect: { sanity: -4 } }
                 ]
             },
             accept_whispers: {
                 text: '你决定接受这些神秘声音的存在，试着去理解它们在说什么。\\n\\n奇怪的是，当你不再抗拒时，那些声音似乎变得不那么可怕了...',
                 choices: [
-                    { text: '尝试沟通', nextScene: 'touch_ribbons', effect: { sanity: -15 } },
-                    { text: '保持距离观察', nextScene: 'check_dream', effect: { sanity: -5 } },
+                    { text: '尝试沟通', nextScene: 'touch_ribbons', effect: { sanity: -6 } },
+                    { text: '保持距离观察', nextScene: 'check_dream', effect: { sanity: -6 } },
                     { text: '寻求帮助', nextScene: 'consult_elder', effect: {} }
                 ]
             },
             flee_hall: {
                 text: '你决定立即离开这个诡异的祠堂。\\n\\n当你冲向大门时，发现门不知何时已经关紧了。\\n\\n恐慌开始在心中蔓延...',
                 choices: [
-                    { text: '用力撞门', nextScene: 'go_to_room', effect: { sanity: -20 } },
-                    { text: '寻找其他出口', nextScene: 'investigate_well_night', effect: { sanity: -15 } },
-                    { text: '冷静下来观察', nextScene: 'observe_weird', effect: { sanity: 5 } }
+                    { text: '用力撞门', nextScene: 'go_to_room', effect: { sanity: -8 } },
+                    { text: '寻找其他出口', nextScene: 'investigate_well_night', effect: { sanity: -6 } },
+                    { text: '冷静下来观察', nextScene: 'observe_weird', effect: { sanity: -12 } }
                 ]
             },
             religious_fight: {
                 text: '你开始念诵所知的宗教经文，试图用信仰对抗这些超自然现象。\\n\\n然而，你念得越快，周围的声音就越大...',
                 choices: [
-                    { text: '停止念诵', nextScene: 'accept_supernatural', effect: { sanity: -10 } },
-                    { text: '继续念诵', nextScene: 'mental_fight', effect: { sanity: -25 } },
-                    { text: '使用符纸', nextScene: 'use_talisman', effect: { sanity: 10 } }
+                    { text: '停止念诵', nextScene: 'accept_supernatural', effect: { sanity: -4 } },
+                    { text: '继续念诵', nextScene: 'mental_fight', effect: { sanity: -10 } },
+                    { text: '使用符纸', nextScene: 'use_talisman', effect: { sanity: -4 } }
                 ]
             },
             accept_supernatural: {
                 text: '你终于接受了这些超自然现象的存在。\\n\\n当你不再试图抵抗或逃离时，一种奇异的平静笼罩了你。\\n\\n也许理解从接纳开始...',
                 choices: [
-                    { text: '主动探索', nextScene: 'investigate_well_night', effect: { sanity: -15 } },
+                    { text: '主动探索', nextScene: 'investigate_well_night', effect: { sanity: -6 } },
                     { text: '保持观察', nextScene: 'observe_weird', effect: {} },
                     { text: '记录下来', nextScene: 'mission_complete', effect: {}, ending: true }
                 ]
@@ -1525,114 +1821,253 @@
             scream_escape: {
                 text: '你的尖叫声在空旷的祠堂中回荡。\\n\\n突然间，所有的声音都停止了。\\n\\n你瘫倒在地，大口喘息着。这场噩梦似乎终于结束了...',
                 choices: [
-                    { text: '[结局：逃脱]', nextScene: 'title_screen', effect: { sanity: 50, ending: true } }
+                    { text: '[结局：逃脱]', nextScene: 'title_screen', effect: { sanity: -20, ending: true } }
                 ]
             },
             // 其他简单结局场景
             demand_truth: {
                 text: '你坚持要知道真相。村长叹了口气：\\n\\n"好吧，既然你这么坚持...但你可能会后悔知道得太多。"\\n\\n他开始讲述一个令人不安的故事...',
                 choices: [
-                    { text: '听完整个故事', nextScene: 'investigate_truth', effect: { sanity: -30 } },
-                    { text: '中途打断离开', nextScene: 'leave_freely', effect: { sanity: -10 } },
-                    { text: '表示怀疑并调查', nextScene: 'investigate_names', effect: { sanity: -20 } }
+                    { text: '听完整个故事', nextScene: 'investigate_truth', effect: { sanity: -12 } },
+                    { text: '中途打断离开', nextScene: 'leave_freely', effect: { sanity: -4 } },
+                    { text: '表示怀疑并调查', nextScene: 'investigate_names', effect: { sanity: -8 } }
                 ]
             },
             tell_truth: {
                 text: '你将遇到老人的经过、得到符纸的来龙去脉全部告诉了这位学识老人。\\n\\n老人听完后脸色变得更加凝重："这是镇魂符，专门用来镇压恶灵的。你能得到它，说明已经有人认定你需要被保护。"\\n\\n他沉吟片刻："现在的麻烦是，有了这个符纸，某些东西会更容易找到你..."',
                 choices: [
-                    { text: '询问如何正确使用符纸', nextScene: 'use_talisman', effect: { sanity: 10, flags: { knowsTalismanUse: true } } },
-                    { text: '追问什么会来找自己', nextScene: 'investigate_truth', effect: { sanity: -20 } },
+                    { text: '询问如何正确使用符纸', nextScene: 'use_talisman', effect: { sanity: -4, flags: { knowsTalismanUse: true } } },
+                    { text: '追问什么会来找自己', nextScene: 'investigate_truth', effect: { sanity: -8 } },
                     { text: '感谢老人并离开', nextScene: 'find_lodging', effect: { trustLevel: 15 } }
                 ]
             },
             vague_answer: {
                 text: '你含糊其辞地说是偶然得到的，避免了详细描述遇到的怪事。\\n\\n老人审视地看着你："年轻人，我不知道你经历了什么，但这张符纸不是凡物。既然有缘得到它，就要承担相应的责任。"\\n\\n他似乎不太相信你的说辞，但还是给了你一些建议。',
                 choices: [
-                    { text: '坦诚相告', nextScene: 'tell_truth', effect: { sanity: 5, trustLevel: 10 } },
-                    { text: '继续敷衍', nextScene: 'find_lodging', effect: { sanity: -5 } },
-                    { text: '询问符纸的正确用法', nextScene: 'use_talisman', effect: { sanity: 5 } }
+                    { text: '坦诚相告', nextScene: 'tell_truth', effect: { sanity: -6, trustLevel: 10 } },
+                    { text: '继续敷衍', nextScene: 'find_lodging', effect: { sanity: -6 } },
+                    { text: '询问符纸的正确用法', nextScene: 'use_talisman', effect: { sanity: -6 } }
                 ]
             },
             struggle_accept: {
                 text: '你开始挣扎，试图摆脱这些诡异声音的控制。\\n\\n"反抗是徒劳的..."声音嘲笑道，"你越挣扎，陷得越深。"\\n\\n你感觉自己的力量正在流失...',
                 choices: [
-                    { text: '停止挣扎，保存体力', nextScene: 'resist_voices', effect: { sanity: -10 } },
-                    { text: '念诵镇魂符咒', nextScene: 'use_talisman', effect: { sanity: 15, flags: { knowsTalismanUse: true } } },
-                    { text: '接受现实', nextScene: 'accept_fate', effect: { sanity: -30 } }
+                    { text: '停止挣扎，保存体力', nextScene: 'resist_voices', effect: { sanity: -4 } },
+                    { text: '念诵镇魂符咒', nextScene: 'use_talisman', effect: { sanity: -6, flags: { knowsTalismanUse: true } } },
+                    { text: '接受现实', nextScene: 'accept_fate', effect: { sanity: -12 } }
                 ]
             },
             leave_hall: {
                 text: '"谢谢您的好意，但我还是想再看看有没有其他选择。"\\n\\n男子点了点头："也好，村里的规矩确实不适合外人。不过天快黑了，建议你尽快找到住处。"\\n\\n你告别了宗祠，重新回到村子的石板路上。夕阳西下，给古老的建筑镀上了一层诡异的金色...',
                 choices: [
-                    { text: '寻找其他住处', nextScene: 'find_other_house', effect: { sanity: -10 } },
-                    { text: '先找个地方观察情况', nextScene: 'observe_village', effect: { sanity: -5 } },
-                    { text: '后悔决定，返回宗祠', nextScene: 'knock_ancestral_hall', effect: { sanity: 5 } }
+                    { text: '寻找其他住处', nextScene: 'find_other_house', effect: { sanity: -4 } },
+                    { text: '先找个地方观察情况', nextScene: 'observe_village', effect: { sanity: -6 } },
+                    { text: '后悔决定，返回宗祠', nextScene: 'knock_ancestral_hall', effect: { sanity: -6 } }
                 ]
             },
             ask_about_night_rules: {
                 text: '"为什么晚上不能乱走？这里有什么特别的规矩吗？"\\n\\n男子脸色一沉，警惕地看了看四周，然后压低声音说："年轻人，有些事情还是不知道的好。这个村子在晚上...不太一样。"\\n\\n他犹豫了一下，继续说道："如果你非要问，那就记住三点：不要开灯，不要回应声音，最重要的是，绝对不能照镜子。"',
                 choices: [
-                    { text: '追问为什么不能照镜子', nextScene: 'investigate_truth', effect: { sanity: -20, flags: { knowsMirrorDanger: true } } },
-                    { text: '感谢并记住这些警告', nextScene: 'enter_ancestral_hall', effect: { sanity: -5, trustLevel: 10 } },
-                    { text: '觉得危险想要离开', nextScene: 'leave_hall', effect: { sanity: -15 } }
+                    { text: '追问为什么不能照镜子', nextScene: 'investigate_truth', effect: { sanity: -8, flags: { knowsMirrorDanger: true } } },
+                    { text: '感谢并记住这些警告', nextScene: 'enter_ancestral_hall', effect: { sanity: -6, trustLevel: 10 } },
+                    { text: '觉得危险想要离开', nextScene: 'leave_hall', effect: { sanity: -6 } }
                 ]
             },
             // 古井相关场景
             try_open_well: {
                 text: '你用力推动石板，但它异常沉重。随着你的努力，井底的哭声似乎变得更加清晰，甚至能听到一些模糊的词语："救我...快救我..."\\n\\n突然，石板松动了一丝缝隙，一股阴冷的风从井里吹出，带着淡淡的血腥味...',
                 choices: [
-                    { text: '继续用力推开石板', nextScene: 'investigate_well_night', effect: { sanity: -30, flags: { knowsWellSecret: true } } },
-                    { text: '立即后退远离古井', nextScene: 'find_lodging', effect: { sanity: -15 } },
-                    { text: '对井里说话询问', nextScene: 'listen_to_voices', effect: { sanity: -25 } }
+                    { text: '继续用力推开石板', nextScene: 'investigate_well_night', effect: { sanity: -12, flags: { knowsWellSecret: true } } },
+                    { text: '立即后退远离古井', nextScene: 'find_lodging', effect: { sanity: -6 } },
+                    { text: '对井里说话询问', nextScene: 'listen_to_voices', effect: { sanity: -10 } }
                 ]
             },
             flee_well: {
                 text: '恐惧让你转身就跑，身后传来石板震动的声响和更凄厉的哭声。\\n\\n你在村里漫无目的地跑着，直到太阳完全落下。当你停下来喘气时，发现已经回到了村口的大榕树下。\\n\\n夜色开始笼罩村庄...',
                 choices: [
-                    { text: '回到宗祠住下', nextScene: 'knock_ancestral_hall', effect: { sanity: -10 } },
-                    { text: '寻找其他住处', nextScene: 'find_other_house', effect: { sanity: -20 } },
-                    { text: '观察夜晚的村庄', nextScene: 'investigate_festival', effect: { sanity: -30, flags: { supernaturalEvents: 2 } } }
+                    { text: '回到宗祠住下', nextScene: 'knock_ancestral_hall', effect: { sanity: -4 } },
+                    { text: '寻找其他住处', nextScene: 'find_other_house', effect: { sanity: -8 } },
+                    { text: '观察夜晚的村庄', nextScene: 'investigate_festival', effect: { sanity: -12, flags: { supernaturalEvents: 2 } } }
                 ]
             },
             offer_paper_money: {
                 text: '你恭敬地从口袋里拿出准备好的纸钱，撒在井口周围。\\n\\n诡异地，纸钱刚落地就被一阵无形的风卷起，慢慢飘入井中。井底的哭声似乎停顿了一下，然后变得更加微弱...\\n\\n一种莫名的平静感笼罩着你。',
                 choices: [
-                    { text: '向井口鞠躬后离开', nextScene: 'find_lodging', effect: { sanity: 10, trustLevel: 15 } },
-                    { text: '继续观察古井', nextScene: 'listen_careful', effect: { sanity: -5 } },
-                    { text: '询问村里人关于古井的事', nextScene: 'ask_about_secrets', effect: { sanity: -15 } }
+                    { text: '向井口鞠躬后离开', nextScene: 'find_lodging', effect: { sanity: -4, trustLevel: 15 } },
+                    { text: '继续观察古井', nextScene: 'listen_careful', effect: { sanity: -6 } },
+                    { text: '询问村里人关于古井的事', nextScene: 'ask_about_secrets', effect: { sanity: -6 } }
                 ]
             },
             // 缺失的场景修复
             confront_ghost: {
                 text: '"我知道你是谁！你是..."你正要说出女孩的名字，但她突然露出了诡异的笑容。\\n\\n"是吗？那你倒说说，我是谁？"她的声音变得冰冷而陌生。\\n\\n就在这一刻，你意识到你可能招惹了不该招惹的东西...房间里的温度骤降，感觉像有无数双手在触摸你...',
                 choices: [
-                    { text: '使用镇魂符', nextScene: 'use_talisman', effect: { sanity: 15 } },
-                    { text: '跪地求饶', nextScene: 'accept_fate', effect: { sanity: -40 } },
-                    { text: '冲出房间', nextScene: 'rush_escape', effect: { sanity: -25 } }
+                    { text: '使用镇魂符', nextScene: 'use_talisman', effect: { sanity: -6 } },
+                    { text: '跪地求饶', nextScene: 'accept_fate', effect: { sanity: -2 } },
+                    { text: '冲出房间', nextScene: 'rush_escape', effect: { sanity: -10 } }
                 ]
             },
             find_more_charms: {
                 text: '你决定寻找更多的镇魂符来保护自己。在村里四处打听后，一位老婆婆悄悄告诉你，宗祠里可能还藏有一些古老的符纸...\\n\\n"但要小心，"她警告道，"那些符纸不是谁都能拿的。如果你心怀不轨，反会招来祸患。"\\n\\n深夜，你潜入了宗祠...',
                 choices: [
-                    { text: '仔细搜索宗祠', nextScene: 'explore_hall', effect: { sanity: -20 } },
-                    { text: '向祖宗牌位磕头请示', nextScene: 'consult_elder', effect: { sanity: 10, trustLevel: 20 } },
-                    { text: '放弃寻找，保持现状', nextScene: 'investigate_festival', effect: { sanity: -5 } }
+                    { text: '仔细搜索宗祠', nextScene: 'explore_hall', effect: { sanity: -8 } },
+                    { text: '向祖宗牌位磕头请示', nextScene: 'consult_elder', effect: { sanity: -4, trustLevel: 20 } },
+                    { text: '放弃寻找，保持现状', nextScene: 'investigate_festival', effect: { sanity: -6 } }
                 ]
             },
             flee_village: {
                 text: '你决定立即离开这个诡异的村庄。收拾好行李后，你趁着天还没完全亮就出发了...\\n\\n但奇怪的是，无论你怎么走，最终都会回到村口的大榕树下。\\n\\n"想走？没那么容易..."一个声音从身后传来。你转身一看，是白天遇到的那些老人...他们的眼神变得异常冰冷。',
                 choices: [
-                    { text: '强行闯出包围', nextScene: 'run_away_fast', effect: { sanity: -30 } },
-                    { text: '跪求原谅', nextScene: 'accept_fate', effect: { sanity: -20 } },
-                    { text: '寻求老人帮助', nextScene: 'consult_elder', effect: { sanity: -10 } }
+                    { text: '强行闯出包围', nextScene: 'run_away_fast', effect: { sanity: -12 } },
+                    { text: '跪求原谅', nextScene: 'accept_fate', effect: { sanity: -8 } },
+                    { text: '寻求老人帮助', nextScene: 'consult_elder', effect: { sanity: -4 } }
                 ]
             },
             decode_symbols: {
                 text: '你开始仔细研究这些符号。渐渐地，你发现它们形成了一个复杂的阵列...\\n\\n"这是古代的阵法，"你喃喃自语，"看来这个村子在下很大的一盘棋..."\\n\\n经过几个小时的破解，你终于明白了这些符号的含义：它们指向了一个隐藏的密室！\\n\\n在地面上，一块石板缓缓移开，露出了向下的阶梯。',
                 choices: [
-                    { text: '进入密室探索', nextScene: 'investigate_names', effect: { sanity: -35, flags: { knowsSecretRoom: true } } },
-                    { text: '封住密室离开', nextScene: 'destroy_ribbons', effect: { sanity: 15 } },
-                    { text: '记录符号后离开', nextScene: 'mission_complete', effect: { sanity: 5, flags: { hasSecret: true } } }
+                    { text: '进入密室探索', nextScene: 'investigate_names', effect: { sanity: -14, flags: { knowsSecretRoom: true } } },
+                    { text: '封住密室离开', nextScene: 'destroy_ribbons', effect: { sanity: -6 } },
+                    { text: '记录符号后离开', nextScene: 'mission_complete', effect: { sanity: -6, flags: { hasSecret: true } } }
+                ]
+            },
+            // 更多缺失的场景修复
+            ask_granny: {
+                text: '"老婆婆，请问您这里有房间出租吗？我想找个地方住几天。"\\n\\n老婆婆停下手中的活计，眯着眼睛打量你："外来人啊...现在的年轻人胆子真大，这年头还敢来我们村。"\\n\\n她叹了口气："倒是有间空房，不过得先说好，晚上不管听到什么声音，都不要开门。还有，城隍庙那里最好不要去..."',
+                choices: [
+                    { text: '感谢并询问夜晚规矩', nextScene: 'ask_about_night_rules', effect: { sanity: -4, trustLevel: 10 } },
+                    { text: '直接要房间钥匙', nextScene: 'rest_bed', effect: { sanity: -6 } },
+                    { text: '询问城隍庙的情况', nextScene: 'investigate_festival', effect: { sanity: -8 } }
+                ]
+            },
+            buy_goods: {
+                text: '你走进杂货铺。这里有各种日用品和零食，但许多商品都蒙着一层灰尘。\\n\\n"小伙子/小姑娘，要点什么？"老婆婆问。\\n\\n你随便买了一些东西，借机和老婆婆聊天："这里好像很安静，村民们都去哪了？"\\n\\n老婆婆的脸色变得很奇怪："今天不是闲聊的日子...你应该回住处了。"',
+                choices: [
+                    { text: '继续追问村民失踪的事', nextScene: 'investigate_disappearances', effect: { sanity: -10 } },
+                    { text: '感谢离开回住处', nextScene: 'rest_bed', effect: { sanity: -6 } },
+                    { text: '购买更多物品', nextScene: 'find_other_house', effect: {}, ending: true }
+                ]
+            },
+            return_to_hall: {
+                text: '你决定回到宗祠，虽然那地方的规矩让人不安，但至少有个明确的选择。\\n\\n重新站在宗祠门口，天色更加昏暗。门紧闭着，你敲门却无人应答。\\n\\n就在这时，你听到身后传来脚步声...',
+                choices: [
+                    { text: '立即转身查看', nextScene: 'ask_about_them', effect: { sanity: -8 } },
+                    { text: '继续敲门', nextScene: 'lock_hall_door', effect: { sanity: -6 } },
+                    { text: '离开去别处', nextScene: 'find_other_house', effect: { sanity: -4 } }
+                ]
+            },
+            follow_sounds: {
+                text: '你循着女人的笑声和孩子的哭声往前走。声音引导你来到村子深处的一座院子前。\\n\\n院子里没有灯，但那声音依然很清晰，仿佛就在耳边。当你准备进院时，突然意识到不对劲...\\n\\n这院子里根本没有任何人！',
+                choices: [
+                    { text: '冲进院子查看', nextScene: 'brave_exploration', effect: { sanity: -12 } },
+                    { text: '立刻转身离开', nextScene: 'investigate_festival', effect: { sanity: -8, flags: { supernaturalEvents: 3 } } },
+                    { text: '站在外面仔细观察', nextScene: 'observe_weird', effect: { sanity: -6 } }
+                ]
+            },
+            find_villager: {
+                text: '你在村子里四处寻找村民，但奇怪一个都找不到。每家每户的门都紧闭，窗户都用黑布遮挡。\\n\\n傍晚时分，你看到远处有几个身影在移动，但当你走过去时，他们就消失了。\\n\\n这个村子就像一个巨大的舞台，而你却是唯一的不速之客...',
+                choices: [
+                    { text: '等待夜晚降临看看会发生什么', nextScene: 'investigate_well_night', effect: { sanity: -2 } },
+                    { text: '去宗祠寻求帮助', nextScene: 'knock_ancestral_hall', effect: { sanity: -10 } },
+                    { text: '离开村子寻求外界帮助', nextScene: 'flee_village', effect: { sanity: -8 } }
+                ]
+            },
+            look_mirror: {
+                text: '你忍不住好奇心，走到了房间里的穿衣镜前。镜面很模糊，但隐约能看到一个身影...\\n\\n那个人影的动作和你完全一样，但表情却完全不同。它嘴角带着诡异的笑容。\\n\\n突然，你发现镜子里的人影抬起了手，而你的手并没有动！\\n\\n镜中人影缓缓开口："终于...等到你了...要让我的身体回来了..."',
+                choices: [
+                    { text: '立即砸碎镜子', nextScene: 'destroy_ribbons', effect: { sanity: -12, flags: { isPossessed: false } } },
+                    { text: '用尽全身力气反抗', nextScene: 'resist_voices', effect: { sanity: -14 } },
+                    { text: '接受身体交换的命运', nextScene: 'accept_fate', effect: { sanity: -20 }, ending: true }
+                ]
+            },
+            // 添加sanity恢复场景
+            peaceful_rest: {
+                text: '你选择不理会外面的声音，专注于内心平静。慢慢地，你感觉身心都放松下来，那些嘈杂的声音似乎也变得遥远了...\\n\\n一夜好眠后，你的精神恢复了许多。',
+                choices: [
+                    { text: '第二天继续调查', nextScene: 'check_desk', effect: { sanity: 5 } },
+                    { text: '去找李叔询问情况', nextScene: 'ask_about_secrets', effect: {} },
+                    { text: '先在村子转转', nextScene: 'explore_hall', effect: {} }
+                ]
+            },
+            meditation_rest: {
+                text: '你点上香，盘腿静坐。香火的烟气缭绕，你的内心逐渐空明。\\n\\n在冥想中，你似乎看到了一些前世的片段...这些信息或许对你接下来的探索有帮助。\\n\\n早晨醒来，感觉精神饱满。',
+                choices: [
+                    { text: '整理思路，制定计划', nextScene: 'check_desk', effect: { sanity: 10, flags: { knowsPlan: true } } },
+                    { text: '分享昨夜的发现', nextScene: 'consult_elder', effect: { trustLevel: 10 } },
+                    { text: '继续寻找线索', nextScene: 'investigate_well_night', effect: {} }
+                ]
+            },
+            herbal_tea: {
+                text: '老婆婆看出了你的不适，递给你一杯热热的草药茶："喝了这个吧，能安神助眠。"\\n\\n茶水甘甜温润，喝下去后全身都暖洋洋的，感觉像是被温柔的包裹着...',
+                choices: [
+                    { text: '感谢老婆婆，询问茶方', nextScene: 'ask_granny', effect: { sanity: 8, trustLevel: 10 } },
+                    { text: '享受这平静的时刻', nextScene: 'rest_bed', effect: { sanity: 12 } },
+                    { text: '询问更多关于村子的事', nextScene: 'ask_secrets', effect: {} }
+                ]
+            },
+            // 日记相关场景
+            continue_diary: {
+                text: '你忍不住继续翻阅日记。接下来的内容让你毛骨悚然：\\n\\n"七月十八，我终于明白了...这个村庄的诅咒与我的家族有关。我的祖先就是当年的祭品之一。现在我也要成为祭品了..."\\n\\n"七月十九，她找到了我。那个一直在我身边的女孩...她说她就是百年来所有祭品的集合体。她给了我一个选择..."\\n\\n日记在这里戛然而止，最后一页空白的，似乎写日记的人 interruption 了。',
+                choices: [
+                    { text: '放下日记，整理思绪', nextScene: 'peaceful_rest', effect: { sanity: -8, flags: { knowsFamilySecret: true } } },
+                    { text: '寻找那个女孩', nextScene: 'confront_ghost', effect: { sanity: -12, flags: { knowsGirlSecret: true } } },
+                    { text: '撕毁日记，试图摆脱宿命', nextScene: 'destroy_ribbons', effect: { sanity: -15, flags: { isPossessed: true } } }
+                ]
+            },
+            sleep_after_diary: {
+                text: '你合上日记，决定先睡觉再说。但躺在床上的你，无论如何也无法入眠。\\n\\n日记的内容在你脑海中反复出现..."七月十七...我想离开，但已经太晚了..."\\n\\n就在这时，你听到了敲门声...或者，那真的是敲门声吗？',
+                choices: [
+                    { text: '假装没听到，继续睡觉', nextScene: 'rest_bed', effect: { sanity: -6 } },
+                    { text: '小声回应"谁啊？"', nextScene: 'whisper_response', effect: { sanity: -8, flags: { supernaturalEvents: 1 } } },
+                    { text: '安静地走下床，从猫眼向外看', nextScene: 'peek_door', effect: { sanity: -10, flags: { peekedOutside: true } } }
+                ]
+            },
+            whisper_response: {
+                text: '"谁啊？"你小声问道。\\n\\n外面没有任何声音，但你感觉有什么东西在门外静静地看着你...\\n\\n突然，一个冰冷的声音直接在你耳边响起："就是你在找我..."',
+                choices: [
+                    { text: '尖叫着退开', nextScene: 'scream_run', effect: { sanity: -15 } },
+                    { text: '壮着胆子开门', nextScene: 'open_door_li', effect: { sanity: -8, flags: { isPossessed: true } } },
+                    { text: '躲进床底', nextScene: 'hide_under_bed', effect: { sanity: -12 } }
+                ]
+            },
+            hide_under_bed: {
+                text: '你迅速钻进床底下，屏住呼吸。床下很暗，但你能看到一双脚站在房间里...\\n\\n那双脚没有移动，只是静静地站着。过了很久，脚步声才慢慢离开。\\n\\n当你从床底出来时，发现桌上多了一朵枯萎的白菊花。',
+                choices: [
+                    { text: '拿起菊花看看', nextScene: 'examine_flower', effect: { sanity: -10 } },
+                    { text: '立即离开这个房间', nextScene: 'rush_escape', effect: { sanity: -8 } },
+                    { text: '回到床上假装睡着', nextScene: 'peaceful_rest', effect: { sanity: 6 } }
+                ]
+            },
+            peek_door: {
+                text: '你悄悄走到门边，从猫眼向外看...\\n\\n外面不是走廊，而是一片漆黑。但是，你看到一双眼睛正从猫眼的另一端看着你！\\n\\n"找到你了..."外面的声音响起，同时门开始剧烈震动。',
+                choices: [
+                    { text: '立刻后退远离大门', nextScene: 'scream_run', effect: { sanity: -12 } },
+                    { text: '用力顶住大门', nextScene: 'block_door', effect: { sanity: -8 } },
+                    { text: '大喊救命', nextScene: 'shout_for_help', effect: { sanity: -15, flags: { hasScreamed: true } } }
+                ]
+            },
+            block_door: {
+                text: '你用尽全身力气顶住大门。门外传来巨大的撞击声，但门没有塌。\\n\\n奇怪的是，撞击声渐渐变小了。你松了一口气，但就在这时，你感觉有什么东西在你身后......',
+                choices: [
+                    { text: '慢慢转身查看', nextScene: 'slowly_turn', effect: { sanity: -15 } },
+                    { text: '冲向窗户试图逃脱', nextScene: 'rush_window', effect: { sanity: -10 } },
+                    { text: '横扫房间，寻找武器', nextScene: 'find_weapon', effect: { sanity: -6 } }
+                ]
+            },
+            find_weapon: {
+                text: '你快速扫视房间，在桌上发现了一把剪刀。虽然不是什么武器，但总比没有强。\\n\\n拿起剪刀时，你感觉它发着诡异的微光，似乎有什么力量正在其中涌动。',
+                choices: [
+                    { text: '用剪刀防御', nextScene: 'use_scissors', effect: { sanity: -8, flags: { hasWeapon: true } } },
+                    { text: '扔掉剪刀，用拳头搏斗', nextScene: 'fisticuffs', effect: { sanity: -12 } },
+                    { text: '假装放下武器，静观其变', nextScene: 'ambush_defense', effect: { sanity: 4 } }
+                ]
+            },
+            examine_flower: {
+                text: '你小心翼翼地拿起那朵白菊花。花瓣干枯发黑，散发着淡淡的奇怪香味。\\n\\n当你仔细观察时，发现花茎上系着一张小纸条，上面写着："下一个就是你了"',
+                choices: [
+                    { text: '立即扔掉花朵', nextScene: 'throw_flower', effect: { sanity: -6, flags: { threwFlower: true } } },
+                    { text: '保留花朵作为证据', nextScene: 'keep_flower', effect: { sanity: -4, flags: { hasEvidence: true } } },
+                    { text: '寻找更多线索', nextScene: 'search_clues', effect: { sanity: -8 } }
                 ]
             }
         };
@@ -1661,12 +2096,9 @@
             recite_sutras: 'touch_ribbons',
             listen_to_voices: 'touch_ribbons',
             flee_banyan: 'touch_ribbons',
-            follow_sounds: 'enter_village_after_observation',
-            find_villager: 'enter_village_after_observation',
+            // follow_sounds, find_villager 现在是独立场景，不再映射
             go_to_ancestral_hall: 'find_lodging',
-            ask_granny: 'find_other_house',
-            buy_goods: 'find_other_house',
-            return_to_hall: 'find_other_house',
+            // ask_granny, buy_goods, return_to_hall 现在是独立场景，不再映射
             // try_open_well, flee_well, offer_paper_money 现在是独立场景，不再映射
             press_for_details: 'investigate_festival',  // 修复：指向祭祀调查
             wander_village: 'village_entrance',  // 修复：指向实际场景
@@ -1683,11 +2115,10 @@
             recite_defense: 'look_back',
             ask_rules: 'go_to_room',  // 修复：指向实际定义的场景
             ask_about_outside: 'lock_hall_door',
-            look_mirror: 'go_to_room',
-            continue_diary: 'check_desk',
-            sleep_after_diary: 'check_desk',
+            // look_mirror 现在是独立场景，不再映射
+            // continue_diary 和 sleep_after_diary 现在是独立场景，不再映射
             // search_well_clues 已移除，使用实际场景
-            open_door_li: 'rest_bed',
+            // open_door_li 现在是独立场景，不再映射
             question_knocker: 'rest_bed',
             rush_escape: 'ignore_knock',
             // confront_ghost 现在是独立场景，不再映射
@@ -1839,6 +2270,8 @@
             // 检查是否为结局场景
             if (scene.text.includes('【结局：')) {
                 gameState.gameOver = true;
+                // 触发结局相关成就
+                triggerEndingAchievements(scene.text);
             } else {
                 gameState.gameOver = false;
             }
@@ -2031,15 +2464,45 @@
                 itemElement.textContent = item;
                 inventoryList.appendChild(itemElement);
             });
+
+            // 更新物品计数
+            document.getElementById('inventoryCount').textContent = gameState.inventory.length;
+
+            // 检查物品效果
+            checkItemEffects();
         }
 
         function checkGameOver() {
             if (gameState.sanity <= 0) {
                 gameOver('你已经彻底疯了...');
-            } else if (gameState.flags.isPossessed && gameState.flags.supernaturalEvents > 5) {
+            } else if (gameState.flags.isPossessed && gameState.flags.supernaturalEvents > 8) {
                 gameOver('你的身体已经不再属于你自己...');
-            } else if (gameState.trustLevel < -50) {
+            } else if (gameState.trustLevel < -80) {
                 gameOver('村民们不再信任你，你被赶出了村子...');
+            }
+        }
+
+        function checkGameEndAchievements(message) {
+            // 根据死亡消息触发相应成就
+            if (message.includes('彻底疯了')) {
+                unlockAchievement('alone_survivor');
+            }
+            if (message.includes('身体已经不再属于你自己')) {
+                unlockAchievement('mirror_wanderer');
+            }
+            if (message.includes('村民们不再信任你')) {
+                unlockAchievement('outcast');
+            }
+
+            // 检查其他成就条件
+            if (gameState.flags.knowsWellSecret) {
+                unlockAchievement('deep_investigator');
+            }
+            if (gameState.inventory.includes('镇魂符') && gameState.inventory.includes('神秘日记')) {
+                unlockAchievement('talisman_collector');
+            }
+            if (gameState.flags.killedGirl || message.includes('结束')) {
+                unlockAchievement('full_completion');
             }
         }
 
@@ -2193,6 +2656,21 @@
                     console.error('Failed to load game:', e);
                 }
             }
+
+            // 加载成就数据
+            const savedAchievements = localStorage.getItem('villageAchievements');
+            if (savedAchievements) {
+                try {
+                    const loadedAchievements = JSON.parse(savedAchievements);
+                    achievements.forEach((ach, index) => {
+                        if (loadedAchievements[index]) {
+                            ach.unlocked = loadedAchievements[index].unlocked;
+                        }
+                    });
+                } catch (e) {
+                    console.error('Failed to load achievements:', e);
+                }
+            }
         }
 
         // 启动游戏
@@ -2236,6 +2714,125 @@
                 }
             }
         });
+
+        // 成就墙数据
+        const achievements = [
+            { id: 'alone_survivor', name: '孤独幸存者', desc: '独自一人调查古井真相', unlocked: false, icon: '🏃' },
+            { id: 'spirit_master', name: '通灵大师', desc: '与多位鬼魂交流', unlocked: false, icon: '👻' },
+            { id: 'talisman_collector', name: '符纸收藏家', desc: '收集3个或更多镇魂符', unlocked: false, icon: '📜' },
+            { id: 'diary_researcher', name: '日记研究员', desc: '阅读所有相关的日记', unlocked: false, icon: '📖' },
+            { id: 'village_hero', name: '村庄英雄', desc: '带领村民打破诅咒', unlocked: false, icon: '⚔️' },
+            { id: 'sacrifice_saint', name: '献祭圣人', desc: '用自己换取村民解脱', unlocked: false, icon: '😇' },
+            { id: 'mirror_wanderer', name: '镜中游魂', desc: '经历身体交换', unlocked: false, icon: '🪞' },
+            { id: 'deep_investigator', name: '深入调查者', desc: '解锁所有村庄秘密', unlocked: false, icon: '🔍' },
+            { id: 'survivor_seven', name: '七日生还', desc: '在村庄存活到七月十五', unlocked: false, icon: '🌙' },
+            { id: 'freedom_seeker', name: '自由之路开拓者', desc: '成功逃离村庄束缚', unlocked: false, icon: '🦅' },
+            { id: 'cycle_master', name: '轮回掌控者', desc: '理解并掌控轮回循环', unlocked: false, icon: '🔄' },
+            { id: 'village_guardian', name: '村庄守护神', desc: '成为村庄的永久守护者', unlocked: false, icon: '🛡️' },
+            { id: 'truth_revealer', name: '真相揭示者', desc: '揭示所有村庄秘密', unlocked: false, icon: '🔦' },
+            { id: 'outcast', name: '被驱逐者', desc: '被村民赶出村庄', unlocked: false, icon: '🚪' },
+            { id: 'full_completion', name: '完全通关', desc: '达成所有主要结局', unlocked: false, icon: '🏆' }
+        ];
+
+        function showAchievements() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="achievement-modal">
+                    <div class="modal-header">
+                        <h3>🏆 成就墙</h3>
+                        <button class="close-btn" onclick="closeAchModal()">✕</button>
+                    </div>
+                    <div class="achievement-grid">
+                        ${achievements.map(ach => `
+                            <div class="achievement-card ${ach.unlocked ? 'unlocked' : 'locked'}">
+                                <div class="achievement-icon">${ach.unlocked ? ach.icon : '❓'}</div>
+                                <div class="achievement-info">
+                                    <div class="achievement-name">${ach.unlocked ? ach.name : '???'}</div>
+                                    <div class="achievement-desc">${ach.unlocked ? ach.desc : '继续探索解锁此成就'}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            setTimeout(() => modal.classList.add('show'), 10);
+        }
+
+        function closeAchModal() {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+            }
+        }
+
+        function toggleInventory() {
+            const inventory = document.getElementById('inventory');
+            if (inventory.style.display === 'none' || !inventory.style.display) {
+                inventory.style.display = 'block';
+                inventory.classList.add('show');
+            } else {
+                inventory.style.display = 'none';
+                inventory.classList.remove('show');
+            }
+        }
+
+        function unlockAchievement(id) {
+            const ach = achievements.find(a => a.id === id);
+            if (ach && !ach.unlocked) {
+                ach.unlocked = true;
+                updateAchievementCount();
+                showMessage(`🏆 成就解锁: ${ach.name}`);
+            }
+        }
+
+        function updateAchievementCount() {
+            const count = achievements.filter(a => a.unlocked).length;
+            document.getElementById('achievementCount').textContent = count;
+            localStorage.setItem('villageAchievements', JSON.stringify(achievements));
+        }
+
+        function triggerEndingAchievements(endingText) {
+            // 根据结局内容触发相应成就
+            if (endingText.includes('救赎之光')) {
+                unlockAchievement('sacrifice_saint');
+            }
+            if (endingText.includes('自由之路')) {
+                unlockAchievement('freedom_seeker');
+            }
+            if (endingText.includes('永恒轮回')) {
+                unlockAchievement('cycle_master');
+            }
+            if (endingText.includes('守护者')) {
+                unlockAchievement('village_guardian');
+            }
+            if (endingText.includes('真相大白')) {
+                unlockAchievement('truth_revealer');
+            }
+        }
+
+        function checkItemEffects() {
+            // 检查物品栏中的特殊物品效果
+            if (gameState.inventory.includes('镇魂符')) {
+                // 镇魂符提供精神保护
+                if (gameState.flags.supernaturalEvents > 3) {
+                    showMessage('📜 镇魂符发出了微光，你感觉精神好多了');
+                    gameState.sanity = Math.min(100, gameState.sanity + 10);
+                    updateUI();
+                }
+            }
+
+            if (gameState.inventory.includes('古币')) {
+                // 古币有诡异的副作用
+                if (Math.random() < 0.3) {
+                    showMessage('💰 古币感觉越来越冷...');
+                    gameState.sanity -= 5;
+                    updateUI();
+                }
+            }
+        }
 
         console.log('Game script initialized');
     </script>
