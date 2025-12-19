@@ -516,6 +516,30 @@
                 padding: 12px;
             }
 
+            /* 标题页移动端优化 */
+            .title-screen {
+                padding: 1em 0.5em !important;
+            }
+
+            .subtitle-top {
+                font-size: 0.6em !important;
+                letter-spacing: 0.5em !important;
+                margin-bottom: 1em !important;
+                white-space: nowrap;
+            }
+
+            .game-title {
+                font-size: 2em !important;
+                letter-spacing: 0.1em !important;
+                line-height: 1.1 !important;
+            }
+
+            .subtitle-bottom {
+                font-size: 0.9em !important;
+                letter-spacing: 0.05em !important;
+                margin: 1em 0 !important;
+            }
+
             .choice-button {
                 padding: 10px 12px;
                 font-size: 0.9em;
@@ -592,14 +616,14 @@
         // 场景数据
         const scenes = {
             title_screen: {
-                text: `<div style="text-align: center; font-family: SimSun, serif; padding: 2em 1em;">
-<div style="font-size: 0.8em; color: #996; letter-spacing: 1em; margin-bottom: 2em; opacity: 0.8;">中元节 · 鬼门开 · 百鬼夜行</div>
+                text: `<div class="title-screen" style="text-align: center; font-family: SimSun, serif; padding: 2em 1em;">
+<div class="subtitle-top" style="font-size: 0.8em; color: #996; letter-spacing: 1em; margin-bottom: 2em; opacity: 0.8;">中元节 · 鬼门开 · 百鬼夜行</div>
 
 <div style="margin: 1.5em 0;">
-<h1 style="font-size: 4em; color: #b22222; text-shadow: 0 0 20px rgba(178,34,34,0.8), 2px 2px 4px rgba(0,0,0,0.9); margin: 0; letter-spacing: 0.3em; animation: flicker 4s infinite alternate; font-weight: bold; line-height: 1.2;">古村异闻录</h1>
+<h1 class="game-title" style="font-size: 4em; color: #b22222; text-shadow: 0 0 20px rgba(178,34,34,0.8), 2px 2px 4px rgba(0,0,0,0.9); margin: 0; letter-spacing: 0.3em; animation: flicker 4s infinite alternate; font-weight: bold; line-height: 1.2;">古村异闻录</h1>
 </div>
 
-<div style="font-size: 1.3em; color: #999; margin: 2em 0; font-style: italic; opacity: 0.7; letter-spacing: 0.1em;">「七月半 · 鬼乱窜 · 纸钱飞 · 香火断」</div>
+<div class="subtitle-bottom" style="font-size: 1.3em; color: #999; margin: 2em 0; font-style: italic; opacity: 0.7; letter-spacing: 0.1em;">「七月半 · 鬼乱窜 · 纸钱飞 · 香火断」</div>
 
 <div style="border-top: 1px solid #8b0000; border-bottom: 1px solid #8b0000; padding: 1.5em; margin: 2em auto; max-width: 400px; background: rgba(10,10,10,0.6);">
 <div style="color: #aaa; font-size: 1em; line-height: 1.8; text-align: center;">
@@ -1552,6 +1576,64 @@
                     { text: '感谢并记住这些警告', nextScene: 'enter_ancestral_hall', effect: { sanity: -5, trustLevel: 10 } },
                     { text: '觉得危险想要离开', nextScene: 'leave_hall', effect: { sanity: -15 } }
                 ]
+            },
+            // 古井相关场景
+            try_open_well: {
+                text: '你用力推动石板，但它异常沉重。随着你的努力，井底的哭声似乎变得更加清晰，甚至能听到一些模糊的词语："救我...快救我..."\\n\\n突然，石板松动了一丝缝隙，一股阴冷的风从井里吹出，带着淡淡的血腥味...',
+                choices: [
+                    { text: '继续用力推开石板', nextScene: 'investigate_well_night', effect: { sanity: -30, flags: { knowsWellSecret: true } } },
+                    { text: '立即后退远离古井', nextScene: 'find_lodging', effect: { sanity: -15 } },
+                    { text: '对井里说话询问', nextScene: 'listen_to_voices', effect: { sanity: -25 } }
+                ]
+            },
+            flee_well: {
+                text: '恐惧让你转身就跑，身后传来石板震动的声响和更凄厉的哭声。\\n\\n你在村里漫无目的地跑着，直到太阳完全落下。当你停下来喘气时，发现已经回到了村口的大榕树下。\\n\\n夜色开始笼罩村庄...',
+                choices: [
+                    { text: '回到宗祠住下', nextScene: 'knock_ancestral_hall', effect: { sanity: -10 } },
+                    { text: '寻找其他住处', nextScene: 'find_other_house', effect: { sanity: -20 } },
+                    { text: '观察夜晚的村庄', nextScene: 'investigate_festival', effect: { sanity: -30, flags: { supernaturalEvents: 2 } } }
+                ]
+            },
+            offer_paper_money: {
+                text: '你恭敬地从口袋里拿出准备好的纸钱，撒在井口周围。\\n\\n诡异地，纸钱刚落地就被一阵无形的风卷起，慢慢飘入井中。井底的哭声似乎停顿了一下，然后变得更加微弱...\\n\\n一种莫名的平静感笼罩着你。',
+                choices: [
+                    { text: '向井口鞠躬后离开', nextScene: 'find_lodging', effect: { sanity: 10, trustLevel: 15 } },
+                    { text: '继续观察古井', nextScene: 'listen_careful', effect: { sanity: -5 } },
+                    { text: '询问村里人关于古井的事', nextScene: 'ask_about_secrets', effect: { sanity: -15 } }
+                ]
+            },
+            // 缺失的场景修复
+            confront_ghost: {
+                text: '"我知道你是谁！你是..."你正要说出女孩的名字，但她突然露出了诡异的笑容。\\n\\n"是吗？那你倒说说，我是谁？"她的声音变得冰冷而陌生。\\n\\n就在这一刻，你意识到你可能招惹了不该招惹的东西...房间里的温度骤降，感觉像有无数双手在触摸你...',
+                choices: [
+                    { text: '使用镇魂符', nextScene: 'use_talisman', effect: { sanity: 15 } },
+                    { text: '跪地求饶', nextScene: 'accept_fate', effect: { sanity: -40 } },
+                    { text: '冲出房间', nextScene: 'rush_escape', effect: { sanity: -25 } }
+                ]
+            },
+            find_more_charms: {
+                text: '你决定寻找更多的镇魂符来保护自己。在村里四处打听后，一位老婆婆悄悄告诉你，宗祠里可能还藏有一些古老的符纸...\\n\\n"但要小心，"她警告道，"那些符纸不是谁都能拿的。如果你心怀不轨，反会招来祸患。"\\n\\n深夜，你潜入了宗祠...',
+                choices: [
+                    { text: '仔细搜索宗祠', nextScene: 'explore_hall', effect: { sanity: -20 } },
+                    { text: '向祖宗牌位磕头请示', nextScene: 'consult_elder', effect: { sanity: 10, trustLevel: 20 } },
+                    { text: '放弃寻找，保持现状', nextScene: 'investigate_festival', effect: { sanity: -5 } }
+                ]
+            },
+            flee_village: {
+                text: '你决定立即离开这个诡异的村庄。收拾好行李后，你趁着天还没完全亮就出发了...\\n\\n但奇怪的是，无论你怎么走，最终都会回到村口的大榕树下。\\n\\n"想走？没那么容易..."一个声音从身后传来。你转身一看，是白天遇到的那些老人...他们的眼神变得异常冰冷。',
+                choices: [
+                    { text: '强行闯出包围', nextScene: 'run_away_fast', effect: { sanity: -30 } },
+                    { text: '跪求原谅', nextScene: 'accept_fate', effect: { sanity: -20 } },
+                    { text: '寻求老人帮助', nextScene: 'consult_elder', effect: { sanity: -10 } }
+                ]
+            },
+            decode_symbols: {
+                text: '你开始仔细研究这些符号。渐渐地，你发现它们形成了一个复杂的阵列...\\n\\n"这是古代的阵法，"你喃喃自语，"看来这个村子在下很大的一盘棋..."\\n\\n经过几个小时的破解，你终于明白了这些符号的含义：它们指向了一个隐藏的密室！\\n\\n在地面上，一块石板缓缓移开，露出了向下的阶梯。',
+                choices: [
+                    { text: '进入密室探索', nextScene: 'investigate_names', effect: { sanity: -35, flags: { knowsSecretRoom: true } } },
+                    { text: '封住密室离开', nextScene: 'destroy_ribbons', effect: { sanity: 15 } },
+                    { text: '记录符号后离开', nextScene: 'mission_complete', effect: { sanity: 5, flags: { hasSecret: true } } }
+                ]
             }
         };
 
@@ -1585,9 +1667,7 @@
             ask_granny: 'find_other_house',
             buy_goods: 'find_other_house',
             return_to_hall: 'find_other_house',
-            try_open_well: 'explore_hall',
-            flee_well: 'explore_hall',
-            offer_paper_money: 'explore_hall',
+            // try_open_well, flee_well, offer_paper_money 现在是独立场景，不再映射
             press_for_details: 'investigate_festival',  // 修复：指向祭祀调查
             wander_village: 'village_entrance',  // 修复：指向实际场景
             ask_about_well: 'refuse_warning',
@@ -1610,10 +1690,9 @@
             open_door_li: 'rest_bed',
             question_knocker: 'rest_bed',
             rush_escape: 'ignore_knock',
-            confront_ghost: 'ignore_knock',
+            // confront_ghost 现在是独立场景，不再映射
             ask_ghost_identity: 'scream_encounter',
-            find_more_charms: 'use_talisman',
-            flee_village: 'use_talisman',
+            // find_more_charms, flee_village 现在是独立场景，不再映射
             return_hall_wait: 'flee_village',
             find_other_exit: 'flee_village',
             sabotage_ritual: 'investigate_festival',
@@ -1700,7 +1779,7 @@
             leave_quickly: 'flee_village',
             touch_glowing: 'examine_glowing',
             find_real_exit: 'find_other_exit',
-            decode_symbols: 'research_symbols',
+            // decode_symbols 现在是独立场景，不再映射
             play_dead: 'hide_play_dead',
             make_noise: 'create_disturbance',
             read_haunted_diary: 'read_diary',
