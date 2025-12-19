@@ -264,6 +264,8 @@
             box-shadow: 0 2px 15px rgba(139, 0, 0, 0.3), inset 0 0 20px rgba(139, 0, 0, 0.1);
             position: relative;
             overflow: hidden;
+            flex-wrap: nowrap;
+            gap: 15px;
         }
 
         .status-bar::before {
@@ -280,7 +282,14 @@
         .status-item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .status-item:last-child {
+            flex: 0.8;
+            justify-content: center;
         }
 
         .status-label {
@@ -375,14 +384,146 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+
             .game-container {
-                padding: 10px;
+                padding: 8px;
+                max-width: 100%;
             }
-            .scene-container {
-                padding: 20px;
+
+            .game-header {
+                margin-bottom: 15px;
+                padding-bottom: 10px;
             }
+
             .game-title {
-                font-size: 2em;
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+
+            /* 状态栏优化 - 横向排列 */
+            .status-bar {
+                flex-direction: row;
+                justify-content: space-between;
+                padding: 10px;
+                margin-bottom: 15px;
+                flex-wrap: nowrap;
+                gap: 8px;
+            }
+
+            .status-item {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .status-label {
+                font-size: 0.75em;
+                margin-bottom: 4px;
+                white-space: nowrap;
+            }
+
+            /* 理智值条优化 */
+            .sanity-bar {
+                width: 100%;
+                max-width: 80px;
+                height: 12px;
+            }
+
+            .status-value {
+                font-size: 0.8em;
+                font-weight: bold;
+            }
+
+            /* 场景容器优化 */
+            .scene-container {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .scene-text {
+                font-size: 1em;
+                line-height: 1.6;
+                margin-bottom: 15px;
+                min-height: 120px;
+            }
+
+            /* 选择按钮优化 */
+            .choice-button {
+                padding: 12px 15px;
+                font-size: 0.95em;
+                margin: 6px 0;
+            }
+
+            .choices-container {
+                gap: 10px;
+            }
+
+            /* 标题画面特殊优化 */
+            .scene-container[data-scene="title_screen"] .control-button {
+                padding: 10px 20px;
+                font-size: 0.95em;
+                min-width: 140px;
+                margin: 6px;
+            }
+
+            /* 物品栏优化 */
+            .inventory {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+
+            .inventory-title {
+                font-size: 0.9em;
+                margin-bottom: 8px;
+            }
+
+            /* 控制按钮优化 */
+            .control-buttons {
+                flex-direction: row;
+                gap: 8px;
+                margin-top: 10px;
+                justify-content: center;
+            }
+
+            .control-button {
+                padding: 8px 12px;
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* 小屏手机特殊优化 */
+            .status-bar {
+                padding: 8px;
+            }
+
+            .status-label {
+                font-size: 0.7em;
+            }
+
+            .sanity-bar {
+                max-width: 60px;
+                height: 10px;
+            }
+
+            .scene-container {
+                padding: 12px;
+            }
+
+            .choice-button {
+                padding: 10px 12px;
+                font-size: 0.9em;
+            }
+
+            .scene-text {
+                font-size: 0.95em;
+                min-height: 100px;
             }
         }
     </style>
@@ -1125,6 +1266,292 @@
                     { text: '假装只是好奇', nextScene: 'pretend_curiosity', effect: { sanity: 5 } },
                     { text: '直接询问古井的秘密', nextScene: 'demand_well_secret', effect: { sanity: -20, trustLevel: -20 } }
                 ]
+            },
+            // 添加缺失的场景
+            listen_careful: {
+                text: '李叔压低声音："每年的七月十五，村子都要举行祭祀... 但不是拜神，而是送鬼。"\\n\\n他颤抖着说："需要一个外乡人作为祭品，才能安抚那些不得超生的冤魂...今年，因为疫情封路，断了祭品来源..."\\n\\n突然，窗外传来一声女人的哭泣，李叔立刻闭嘴："有人在听，我先走了，你最好忘了今天的话。"',
+                choices: [
+                    { text: '追问更多细节', nextScene: 'demand_details', effect: { flags: { knowsWellSecret: true }, sanity: -20 } },
+                    { text: '假装没听到，回房间', nextScene: 'go_to_room', effect: { sanity: 10 } },
+                    { text: '立即调查哭泣声来源', nextScene: 'investigate_crying', effect: { flags: { supernaturalEvents: 2 }, sanity: -30 } }
+                ]
+            },
+            investigate_crying: {
+                text: '你循着哭声来到祠堂后院。月光下，你看到一个白衣女子跪在井边...\\n\\n当她回头时，你惊恐地发现她没有脸！\\n\\n【结局：遭遇恶灵】\\n\\n你成为了她下一个等待的祭声...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            demand_details: {
+                text: '李叔的眼神变得恐惧："你疯了？说了就要死人的！"\\n\\n他急匆匆地离开，连再见都没说。\\n\\n房间里只剩下你一个人，窗外的哭声越来越响了...',
+                choices: [
+                    { text: '锁紧门窗睡觉', nextScene: 'lock_hall_door', effect: { sanity: -10 } },
+                    { text: '拿手机录音作为证据', nextScene: 'record_evidence', effect: { flags: { hasEvidence: true }, sanity: -15 } },
+                    { text: '大胆出去查看', nextScene: 'brave_check', effect: { sanity: -40 } }
+                ]
+            },
+            record_evidence: {
+                text: '你悄悄用手机录下了窗外的诡异声音。\\n\\n录音里不仅有哭声，还有许多人的低语，仔细听能听到："来吧...下一个就是你了..."\\n\\n手机突然黑屏，屏幕上显示出血红色的字："你录下了不该录的东西"',
+                choices: [
+                    { text: '立刻扔掉手机', nextScene: 'throw_phone', effect: { inventory: [], sanity: -20 } },
+                    { text: '试图删除录音', nextScene: 'delete_recording', effect: { sanity: -30, flags: { supernaturalEvents: 3 } } },
+                    { text: '继续录音看看会发生什么', nextScene: 'continue_recording', effect: { sanity: -50, gameOver: true } }
+                ]
+            },
+            brave_check: {
+                text: '你鼓起勇气走到院子里，寒意袭来...\\n\\n突然，一只冰冷的手从背后搭在你的肩上！\\n\\n"找什么呢，同学？"一个温柔但冰冷的声音响起...',
+                choices: [
+                    { text: '慢慢回头', nextScene: 'slowly_turn', effect: { flags: { isPossessed: true }, sanity: -60 } },
+                    { text: '哭喊着逃跑', nextScene: 'scream_run', effect: { sanity: -30 } },
+                    { text: '装死不动', nextScene: 'play_dead', effect: { sanity: -10 } }
+                ]
+            },
+            slowly_turn: {
+                text: '你缓缓转身，看到一张扭曲的脸，她的嘴裂开后："终于见到你了...我等你好久了..."\\n\\n【结局：永恒的陪伴】\\n\\n你们永远在一起了，在无尽的时光中...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            throw_phone: {
+                text: '你把手机狠狠扔在地上，手机屏幕碎裂，但诡异的是，那些低语声还在继续，现在直接在你耳边响起！',
+                choices: [
+                    { text: '塞住耳朵', nextScene: 'cover_ears', effect: { sanity: -20 } },
+                    { text: '念经驱邪', nextScene: 'chant_protection', effect: { sanity: 5 } },
+                    { text: '大声唱儿歌壮胆', nextScene: 'sing_loudly', effect: { sanity: -40 } }
+                ]
+            },
+            delete_recording: {
+                text: '你疯狂地删除录音，但每次删除后文件都会重新出现！\\n\\n最后，手机里弹出一个消息："删不掉的...因为是你的声音"',
+                choices: [
+                    { text: '砸碎手机', nextScene: 'throw_phone', effect: { inventory: [], sanity: -30 } },
+                    { text: '检查自己是不是在做梦', nextScene: 'check_dream', effect: { sanity: -50 } },
+                    { text: '用手机录像看看自己', nextScene: 'record_self', effect: { sanity: -70, gameOver: true } }
+                ]
+            },
+            // 紧急修复：添加缺失的场景定义
+            check_dream: {
+                text: '你狠狠掐了自己一下，很疼，这不是梦！\\n\\n但周围的一切开始变得扭曲诡异，墙壁上的符纸在慢慢移动...\\n\\n你意识到自己可能陷入了某种超自然状态。',
+                choices: [
+                    { text: '闭上眼睛强行醒来', nextScene: 'force_wake', effect: { sanity: -40 } },
+                    { text: '继续观察诡异现象', nextScene: 'observe_weird', effect: { sanity: -60 } },
+                    { text: '大声呼救', nextScene: 'scream_help', effect: { sanity: -30 } }
+                ]
+            },
+            record_self: {
+                text: '你颤抖着打开手机前置摄像头...\\n\\n屏幕显示出的不是你的脸，而是一个穿着古装的女人！她对着镜头诡异一笑："终于见到你了...我也是被 recordings 录下来的..."\\n\\n【结局：成为回响】\\n\\n你和它永远活在了数码里...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            continue_recording: {
+                text: '你壮着胆子继续录音。突然，手机开始发出奇怪的声音，像是很多人的声音重叠在一起...\\n\\n"来吧...加入我们...你也不想一个人吧..."\\n\\n【结局：被回响吞噬】\\n\\n你的意识逐渐模糊，成为了无数声音中的一个...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            continue_study: {
+                text: '你对符纸的研究越来越深入，渐渐看懂了上面的咒文...\\n\\n但当你理解最后一个字符时，符纸突然燃烧起来！\\n\\n"谢谢你完成了咒文的最后一部分..."一个声音在你脑中响起。\\n\\n【结局：解开诅咒】\\n\\n你无意中帮助了某种古老的存在...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            cover_ears: {
+                text: '你用双手紧紧塞住耳朵，但那些声音竟然是从脑子里传来的！\\n\\n你听到了更清晰的低语："没用的...我们就在这里...在你心里..."',
+                choices: [
+                    { text: '心理治疗对抗', nextScene: 'mental_fight', effect: { sanity: -50 } },
+                    { text: '用更大的声音覆盖', nextScene: 'sound_cover', effect: { sanity: -30 } },
+                    { text: '接受它们的存在', nextScene: 'accept_whispers', effect: { flags: { isPossessed: true }, sanity: -70 } }
+                ]
+            },
+            sing_loudly: {
+                text: '你开始大声唱儿歌："一闪一闪亮晶晶..."\\n\\n但诡异的是，那些声音也开始跟着唱了起来！而且是许多个声音重叠的童声...\\n\\n"一闪一闪...我们都亮晶晶..."\\n\\n【结局：童声合唱】\\n\\n你和他们一起唱了起来，永远都停不下来了...',
+                choices: [
+                    { text: '重新开始', nextScene: 'village_entrance', effect: { reset: true, restart: true } }
+                ]
+            },
+            force_wake: {
+                text: '你用尽全力想要醒来，眼前开始剧烈晃动...\\n\\n突然，你睁开了眼睛，发现自己还在房间里。\\n\\n但李叔已经不在了，只有桌上那盏油灯还在发出微弱的光。',
+                choices: [
+                    { text: '检查房间状况', nextScene: 'go_to_room', effect: { sanity: -10 } },
+                    { text: '立即离开祠堂', nextScene: 'flee_hall', effect: { sanity: -20 } }
+                ]
+            },
+            observe_weird: {
+                text: '你静静观察着诡异的现象，符纸在墙壁上缓缓爬行，桌上的物品自己移动...\\n\\n渐渐地，你意识到这不仅仅是超自然现象，这是一个警告！',
+                choices: [
+                    { text: '立即逃离这个地方', nextScene: 'flee_hall', effect: { sanity: -15 } },
+                    { text: '尝试与神秘现象对话', nextScene: 'talk_to_weird', effect: { sanity: -40 } },
+                    { text: '用手机录像记录下来', nextScene: 'record_weird', effect: { sanity: -25 } }
+                ]
+            },
+            mental_fight: {
+                text: '你开始在心里默念数学公式、物理定律，试图用理性对抗这些侵入...\\n\\n"科学救不了你..."一个声音嘲笑道。\\n\\n你的理性正在崩塌...',
+                choices: [
+                    { text: '转换思路用宗教对抗', nextScene: 'religious_fight', effect: { sanity: -30 } },
+                    { text: '接受超自然的存在', nextScene: 'accept_supernatural', effect: { sanity: -50 } },
+                    { text: '疯狂尖叫寻求解脱', nextScene: 'scream_escape', effect: { sanity: -70 } }
+                ]
+            },
+            // 添加缺失的场景定义
+            wander_village: {
+                text: '你在村子里漫无目的地走着。\\n\\n古老的建筑静静地矗立着，仿佛每一块砖瓦都在诉说着往事。空气中那股若有若无的香火味似乎更浓了。\\n\\n转了几个弯后，你发现自己又回到了村口的大榕树下...',
+                choices: [
+                    { text: '再次观察榕树', nextScene: 'observe_village', effect: { sanity: -5 } },
+                    { text: '去宗祠看看', nextScene: 'find_lodging', effect: {} },
+                    { text: '找其他住处', nextScene: 'find_other_house', effect: { sanity: -10 } }
+                ]
+            },
+            refuse_talisman_story: {
+                text: '"年轻人，太自信了。"老人摇了摇头，"希望你不会后悔。"\\n\\n他将符纸收了回去，眼神中闪过一丝怜悯。\\n\\n"记住，如果遇到无法理解的事情，立即离开村子。"',
+                choices: [
+                    { text: '坚持自己的决定', nextScene: 'find_lodging', effect: { sanity: -10 } },
+                    { text: '改变主意索要符纸', nextScene: 'accept_talisman', effect: { sanity: 5, flags: { hasTalisman: true } } },
+                    { text: '询问更多关于村子的事情', nextScene: 'ask_about_secrets', effect: { sanity: -15 } }
+                ]
+            },
+            brave_fog: {
+                text: '你鼓起勇气冲进迷雾中。\\n\\n浓雾立刻包围了你，能见度不足一米。奇怪的声响从四面八方传来，仿佛有什么东西在雾中游走。\\n\\n几分钟后，你发现自己又回到了村口...',
+                choices: [
+                    { text: '再次尝试离开', nextScene: 'find_lodging', effect: { sanity: -20 } },
+                    { text: '留在村里', nextScene: 'find_other_house', effect: { sanity: -10 } },
+                    { text: '寻找地势高的地方', nextScene: 'village_entrance', effect: {} }
+                ]
+            },
+            // 其他关键缺失场景
+            check_village_history: {
+                text: '你向村里的老人询问村庄的历史。\\n\\n"这个村子有几百年了，"老人缓缓说道，"经历过很多事，有些事是不能外传的。"\\n\\n他的眼神变得警惕起来。',
+                choices: [
+                    { text: '尊重地停止询问', nextScene: 'consult_elder', effect: { sanity: 5 } },
+                    { text: '坚持追问', nextScene: 'investigate_truth', effect: { sanity: -15 } },
+                    { text: '转移话题', nextScene: 'talk_to_elders', effect: {} }
+                ]
+            },
+            read_diary: {
+                text: '你翻开那本陈旧的日记。\\n\\n泛黄的纸页上记载着一些令人不安的内容...\\n\\n"七月十五，又有一个人失踪了...祭祀必须继续..."\\n\\n日记的内容让你不寒而栗。',
+                choices: [
+                    { text: '继续阅读', nextScene: 'check_desk', effect: { sanity: -20 } },
+                    { text: '合上日记', nextScene: 'rest_bed', effect: { sanity: -10 } },
+                    { text: '带走日记', nextScene: 'mission_complete', effect: { inventory: ['神秘日记'] } }
+                ]
+            },
+            take_diary: {
+                text: '你决定将日记带走，也许这能作为证据。\\n\\n就在你收起日记的时候，门外传来了一阵脚步声...',
+                choices: [
+                    { text: '赶紧躲起来', nextScene: 'hide_blanket', effect: { sanity: -15 } },
+                    { text: '直面门外的声音', nextScene: 'ignore_knock', effect: { sanity: -20 } },
+                    { text: '装睡', nextScene: 'rest_bed', effect: {} }
+                ]
+            },
+            complete_thesis: {
+                text: '你完成了关于这个村庄的调查报告。\\n\\n虽然有些真相令人不安，但你相信这些记录对民俗学研究具有重要意义。\\n\\n你决定是否公开这些发现...',
+                choices: [
+                    { text: '公开发表研究报告', nextScene: 'leave_freely', effect: { sanity: 10 } },
+                    { text: '保守秘密', nextScene: 'mission_complete', effect: { sanity: -5 } },
+                    { text: '深入调查后再决定', nextScene: 'investigate_truth', effect: { sanity: -10 } }
+                ]
+            },
+            scream_help: {
+                text: '你尖叫着呼救，但回应你的只有空旷的回声。\\n\\n周围的环境似乎变得更加诡异了...',
+                choices: [
+                    { text: '继续呼救', nextScene: 'rest_bed', effect: { sanity: -25 } },
+                    { text: '保持安静', nextScene: 'check_dream', effect: { sanity: -5 } },
+                    { text: '尝试醒来', nextScene: 'force_wake', effect: { sanity: -15 } }
+                ]
+            },
+            sound_cover: {
+                text: '你试图用更大的声音覆盖那些低语。\\n\\n你开始大声唱歌，但那些声音反而变得更加清晰，仿佛就在你的耳边...',
+                choices: [
+                    { text: '继续制造声音', nextScene: 'use_talisman', effect: { sanity: -30 } },
+                    { text: '停下来倾听', nextScene: 'accept_whispers', effect: { sanity: -20 } },
+                    { text: '塞住耳朵', nextScene: 'cover_ears', effect: { sanity: -10 } }
+                ]
+            },
+            accept_whispers: {
+                text: '你决定接受这些神秘声音的存在，试着去理解它们在说什么。\\n\\n奇怪的是，当你不再抗拒时，那些声音似乎变得不那么可怕了...',
+                choices: [
+                    { text: '尝试沟通', nextScene: 'touch_ribbons', effect: { sanity: -15 } },
+                    { text: '保持距离观察', nextScene: 'check_dream', effect: { sanity: -5 } },
+                    { text: '寻求帮助', nextScene: 'consult_elder', effect: {} }
+                ]
+            },
+            flee_hall: {
+                text: '你决定立即离开这个诡异的祠堂。\\n\\n当你冲向大门时，发现门不知何时已经关紧了。\\n\\n恐慌开始在心中蔓延...',
+                choices: [
+                    { text: '用力撞门', nextScene: 'go_to_room', effect: { sanity: -20 } },
+                    { text: '寻找其他出口', nextScene: 'investigate_well_night', effect: { sanity: -15 } },
+                    { text: '冷静下来观察', nextScene: 'observe_weird', effect: { sanity: 5 } }
+                ]
+            },
+            religious_fight: {
+                text: '你开始念诵所知的宗教经文，试图用信仰对抗这些超自然现象。\\n\\n然而，你念得越快，周围的声音就越大...',
+                choices: [
+                    { text: '停止念诵', nextScene: 'accept_supernatural', effect: { sanity: -10 } },
+                    { text: '继续念诵', nextScene: 'mental_fight', effect: { sanity: -25 } },
+                    { text: '使用符纸', nextScene: 'use_talisman', effect: { sanity: 10 } }
+                ]
+            },
+            accept_supernatural: {
+                text: '你终于接受了这些超自然现象的存在。\\n\\n当你不再试图抵抗或逃离时，一种奇异的平静笼罩了你。\\n\\n也许理解从接纳开始...',
+                choices: [
+                    { text: '主动探索', nextScene: 'investigate_well_night', effect: { sanity: -15 } },
+                    { text: '保持观察', nextScene: 'observe_weird', effect: {} },
+                    { text: '记录下来', nextScene: 'mission_complete', effect: {}, ending: true }
+                ]
+            },
+            scream_escape: {
+                text: '你的尖叫声在空旷的祠堂中回荡。\\n\\n突然间，所有的声音都停止了。\\n\\n你瘫倒在地，大口喘息着。这场噩梦似乎终于结束了...',
+                choices: [
+                    { text: '[结局：逃脱]', nextScene: 'title_screen', effect: { sanity: 50, ending: true } }
+                ]
+            },
+            // 其他简单结局场景
+            demand_truth: {
+                text: '你坚持要知道真相。村长叹了口气：\\n\\n"好吧，既然你这么坚持...但你可能会后悔知道得太多。"\\n\\n他开始讲述一个令人不安的故事...',
+                choices: [
+                    { text: '听完整个故事', nextScene: 'investigate_truth', effect: { sanity: -30 } },
+                    { text: '中途打断离开', nextScene: 'leave_freely', effect: { sanity: -10 } },
+                    { text: '表示怀疑并调查', nextScene: 'investigate_names', effect: { sanity: -20 } }
+                ]
+            },
+            tell_truth: {
+                text: '你将遇到老人的经过、得到符纸的来龙去脉全部告诉了这位学识老人。\\n\\n老人听完后脸色变得更加凝重："这是镇魂符，专门用来镇压恶灵的。你能得到它，说明已经有人认定你需要被保护。"\\n\\n他沉吟片刻："现在的麻烦是，有了这个符纸，某些东西会更容易找到你..."',
+                choices: [
+                    { text: '询问如何正确使用符纸', nextScene: 'use_talisman', effect: { sanity: 10, flags: { knowsTalismanUse: true } } },
+                    { text: '追问什么会来找自己', nextScene: 'investigate_truth', effect: { sanity: -20 } },
+                    { text: '感谢老人并离开', nextScene: 'find_lodging', effect: { trustLevel: 15 } }
+                ]
+            },
+            vague_answer: {
+                text: '你含糊其辞地说是偶然得到的，避免了详细描述遇到的怪事。\\n\\n老人审视地看着你："年轻人，我不知道你经历了什么，但这张符纸不是凡物。既然有缘得到它，就要承担相应的责任。"\\n\\n他似乎不太相信你的说辞，但还是给了你一些建议。',
+                choices: [
+                    { text: '坦诚相告', nextScene: 'tell_truth', effect: { sanity: 5, trustLevel: 10 } },
+                    { text: '继续敷衍', nextScene: 'find_lodging', effect: { sanity: -5 } },
+                    { text: '询问符纸的正确用法', nextScene: 'use_talisman', effect: { sanity: 5 } }
+                ]
+            },
+            struggle_accept: {
+                text: '你开始挣扎，试图摆脱这些诡异声音的控制。\\n\\n"反抗是徒劳的..."声音嘲笑道，"你越挣扎，陷得越深。"\\n\\n你感觉自己的力量正在流失...',
+                choices: [
+                    { text: '停止挣扎，保存体力', nextScene: 'resist_voices', effect: { sanity: -10 } },
+                    { text: '念诵镇魂符咒', nextScene: 'use_talisman', effect: { sanity: 15, flags: { knowsTalismanUse: true } } },
+                    { text: '接受现实', nextScene: 'accept_fate', effect: { sanity: -30 } }
+                ]
+            },
+            leave_hall: {
+                text: '"谢谢您的好意，但我还是想再看看有没有其他选择。"\\n\\n男子点了点头："也好，村里的规矩确实不适合外人。不过天快黑了，建议你尽快找到住处。"\\n\\n你告别了宗祠，重新回到村子的石板路上。夕阳西下，给古老的建筑镀上了一层诡异的金色...',
+                choices: [
+                    { text: '寻找其他住处', nextScene: 'find_other_house', effect: { sanity: -10 } },
+                    { text: '先找个地方观察情况', nextScene: 'observe_village', effect: { sanity: -5 } },
+                    { text: '后悔决定，返回宗祠', nextScene: 'knock_ancestral_hall', effect: { sanity: 5 } }
+                ]
+            },
+            ask_about_night_rules: {
+                text: '"为什么晚上不能乱走？这里有什么特别的规矩吗？"\\n\\n男子脸色一沉，警惕地看了看四周，然后压低声音说："年轻人，有些事情还是不知道的好。这个村子在晚上...不太一样。"\\n\\n他犹豫了一下，继续说道："如果你非要问，那就记住三点：不要开灯，不要回应声音，最重要的是，绝对不能照镜子。"',
+                choices: [
+                    { text: '追问为什么不能照镜子', nextScene: 'investigate_truth', effect: { sanity: -20, flags: { knowsMirrorDanger: true } } },
+                    { text: '感谢并记住这些警告', nextScene: 'enter_ancestral_hall', effect: { sanity: -5, trustLevel: 10 } },
+                    { text: '觉得危险想要离开', nextScene: 'leave_hall', effect: { sanity: -15 } }
+                ]
             }
         };
 
@@ -1132,19 +1559,21 @@
         const sceneAliases = {
             // 古井相关场景不再在 aliases 中映射，直接使用实际场景
             // 新增场景的映射
-            push_figure: 'continue_diary',
-            check_behind: 'continue_diary',
+            push_figure: 'check_desk',
+            check_behind: 'check_desk',
             chant_protection: 'use_talisman',
-            sleep_with_evidence: 'sleep_after_diary',
+            sleep_with_evidence: 'rest_bed',
             strengthen_seal: 'destroy_well',
             break_seal: 'destroy_well',
             descend_well: 'sacrifice_self',
             honest_inquiry: 'ask_about_secrets',
             pretend_curiosity: 'ask_about_secrets',
             demand_well_secret: 'refuse_warning',
-            accept_talisman: 'confident_response',
-            refuse_talisman: 'confident_response',
-            ask_about_talisman: 'confident_response',
+            // 关键场景映射 - 修复循环引用
+            ask_rules: 'lock_hall_door',  // 修复：不再循环指向自己
+            accept_talisman: 'examine_talisman',  // 修复：指向符纸检查
+            refuse_talisman: 'refuse_talisman_story',  // 新场景：拒绝符纸
+            ask_about_talisman: 'examine_talisman',  // 修复：指向符纸检查
             retract_hand: 'examine_incense',
             take_coin: 'examine_incense',
             recite_sutras: 'touch_ribbons',
@@ -1159,20 +1588,20 @@
             try_open_well: 'explore_hall',
             flee_well: 'explore_hall',
             offer_paper_money: 'explore_hall',
-            press_for_details: 'ask_about_secrets',
-            wander_village: 'ask_about_secrets',
+            press_for_details: 'investigate_festival',  // 修复：指向祭祀调查
+            wander_village: 'village_entrance',  // 修复：指向实际场景
             ask_about_well: 'refuse_warning',
             disregard_warnings: 'refuse_warning',
             remember_warnings: 'refuse_warning',
-            ask_about_night_rules: 'knock_ancestral_hall',
-            leave_hall: 'knock_ancestral_hall',
-            enter_ancestral_hall: 'go_to_ancestral_hall',
+            // ask_about_night_rules 现在是独立场景，不再映射
+            // leave_hall 现在是独立场景，不再映射
+            enter_ancestral_hall: 'enter_ancestral_hall',  // 修复：指向实际场景
             enter_hall_quickly: 'ask_who_coming',
             take_photo: 'ask_who_coming',
             approach_figures: 'ask_who_coming',
             scream_to_hall: 'look_back',
             recite_defense: 'look_back',
-            ask_rules: 'lock_hall_door',
+            ask_rules: 'go_to_room',  // 修复：指向实际定义的场景
             ask_about_outside: 'lock_hall_door',
             look_mirror: 'go_to_room',
             continue_diary: 'check_desk',
@@ -1217,82 +1646,81 @@
             chase_shadow: 'look_back',
             follow_crying: 'scream_encounter',
             // 添加新场景的映射
-            continue_chanting: 'continue_chanting',
-            stop_and_run: 'stop_and_run',
-            accept_invitation: 'accept_invitation',
-            resist_voices: 'resist_voices',
-            accept_fate: 'accept_fate',
-            destroy_ribbons: 'destroy_ribbons',
-            examine_talisman: 'examine_talisman',
-            hurry_leave: 'hurry_leave',
-            study_symbols: 'study_symbols',
-            keep_running_away: 'keep_running_away',
-            calm_down: 'calm_down',
-            leave_immediately: 'leave_immediately',
-            study_banyan: 'study_banyan',
-            try_return: 'try_return',
-            find_path_fog: 'find_path_fog',
-            plan_leave: 'plan_leave',
-            persist_research: 'persist_research',
-            inform_village_head: 'inform_village_head',
-            investigate_names: 'investigate_names',
-            check_roots: 'check_roots',
-            mission_complete: 'mission_complete',
-            consult_elder: 'consult_elder',
-            research_talisman: 'research_talisman',
-            record_symbols: 'record_symbols',
-            ignore_warning_continue: 'ignore_warning_continue',
-            stay_here_night: 'stay_here_night',
-            search_clues: 'search_clues',
-            back_to_entrance: 'back_to_entrance',
-            leave_at_dawn: 'leave_at_dawn',
-            investigate_truth: 'investigate_truth',
-            nod_accept: 'nod_accept',
-            run_away_fast: 'run_away_fast',
-            ask_about_ritual: 'ask_about_ritual',
-            approach_again: 'approach_again',
-            direct_to_village: 'direct_to_village',
-            scream_run: 'scream_run',
-            chant_buddha: 'chant_buddha',
-            brave_fog: 'brave_fog',
-            find_other_exit: 'find_other_exit',
-            start_from_well: 'find_well_source',
-            check_village_history: 'check_village_history',
-            demand_truth: 'demand_truth',
-            secret_investigate: 'secret_investigate',
-            report_police: 'report_police',
-            deep_investigate: 'deep_investigate',
-            read_diary: 'read_diary',
-            take_diary: 'take_diary',
-            complete_thesis: 'complete_thesis',
-            stay_investigate: 'stay_investigate',
-            tell_truth: 'tell_truth',
-            vague_answer: 'vague_answer',
+            continue_chanting: 'complete_ritual',
+            stop_and_run: 'run_away',
+            accept_invitation: 'follow_girl',
+            resist_voices: 'struggle_accept',
+            accept_fate: 'game_over',
+            destroy_ribbons: 'remove_ribbons',
+            examine_talisman: 'go_to_room',  // 修复：不再循环指向自己
+            hurry_leave: 'flee_village',
+            study_symbols: 'decode_symbols',
+            keep_running_away: 'run_away',
+            calm_down: 'rest_bed',
+            leave_immediately: 'flee_village',
+            study_banyan: 'examine_banyan',
+            try_return: 'go_back',
+            find_path_fog: 'navigate_fog',
+            plan_leave: 'prepare_escape',
+            persist_research: 'continue_research',
+            inform_village_head: 'talk_to_head',
+            investigate_names: 'check_names',
+            check_roots: 'examine_roots',
+            mission_complete: 'ending_complete',
+            consult_elder: 'talk_to_elder',
+            research_talisman: 'study_talisman',
+            record_symbols: 'document_symbols',
+            ignore_warning_continue: 'ignore_warnings',
+            stay_here_night: 'stay_night',
+            search_clues: 'look_for_clues',
+            back_to_entrance: 'village_entrance',  // 修复：不再循环指向自己
+            leave_at_dawn: 'find_lodging',  // 修复：不再循环指向自己
+            investigate_truth: 'investigate_festival',  // 修复：不再循环指向自己
+            nod_accept: 'look_back',  // 修复：不再循环指向自己
+            run_away_fast: 'run_away',  // 修复：不再循环指向自己
+            ask_about_ritual: 'lock_hall_door',  // 修复：不再循环指向自己
+            approach_again: 'scream_encounter',  // 修复：不再循环指向自己
+            direct_to_village: 'village_entrance',  // 修复：不再循环指向自己
+            scream_run: 'scream_encounter',  // 修复：不再循环指向自己
+            chant_buddha: 'use_talisman',  // 修复：不再循环指向自己
+            brave_fog: 'find_lodging',  // 修复：不再循环指向自己
+            find_other_exit: 'flee_village',  // 修复：不再循环指向自己
+            start_from_well: 'investigate_well_night',
+            check_village_history: 'consult_elder',
+            demand_truth: 'inform_village_head',
+            secret_investigate: 'investigate_names',
+            report_police: 'leave_freely',
+            deep_investigate: 'investigate_truth',
+            read_diary: 'check_desk',
+            take_diary: 'check_desk',
+            complete_thesis: 'mission_complete',
+            stay_investigate: 'investigate_truth',
+            // tell_truth 和 vague_answer 现在是独立场景，不再映射
             throw_talisman_away: 'throw_talisman',
-            leave_quickly: 'leave_quickly',
-            touch_glowing: 'touch_glowing',
+            leave_quickly: 'flee_village',
+            touch_glowing: 'examine_glowing',
             find_real_exit: 'find_other_exit',
-            decode_symbols: 'decode_symbols',
-            play_dead: 'play_dead',
-            make_noise: 'make_noise',
+            decode_symbols: 'research_symbols',
+            play_dead: 'hide_play_dead',
+            make_noise: 'create_disturbance',
             read_haunted_diary: 'read_diary',
-            take_haunted_diary: 'take_haunted_diary',
-            pickup_amulet: 'pickup_amulet',
-            observe_carefully: 'observe_carefully',
-            shout_for_help: 'shout_for_help',
-            check_houses: 'check_houses',
-            run_again: 'run_again',
-            make_wish: 'make_wish',
-            chant_more: 'chant_more',
-            finish_chanting: 'finish_chanting',
+            take_haunted_diary: 'check_desk',
+            pickup_amulet: 'take_amulet',
+            observe_carefully: 'observe_scene',
+            shout_for_help: 'call_for_help',
+            check_houses: 'search_houses',
+            run_again: 'run_away',
+            make_wish: 'wish_at_well',
+            chant_more: 'continue_chanting',
+            finish_chanting: 'complete_ritual',
             find_abandoned_house: 'find_other_house',
             investigate_ritual: 'investigate_festival',
-            listen_careful: 'listen_careful',
+            listen_careful: 'listen_carefully',
             not_ask_now: 'go_to_room',
-            struggle_accept: 'resist_voices',
+            // struggle_accept 现在是独立场景，不再映射
             run_out_village: 'find_lodging',
             hide_away: 'hide_and_watch',
-            find_other_exit: 'find_other_exit'
+            find_other_exit: 'flee_village'
         };
 
         // 游戏引擎
@@ -1323,8 +1751,10 @@
                 sceneText.style.fontSize = '1.2em';
                 sceneText.style.textAlign = 'left';
                 sceneText.style.lineHeight = '1.8';
-                // 普通场景使用纯文本
-                sceneText.textContent = scene.text;
+                // 普通场景使用文本，但需要正确处理换行符
+                let processedText = scene.text.replace(/\\n\\n/g, '\n\n');
+                processedText = processedText.replace(/\\n/g, '\n');
+                sceneText.textContent = processedText;
             }
 
             // 检查是否为结局场景
